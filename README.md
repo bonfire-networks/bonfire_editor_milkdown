@@ -3,7 +3,7 @@
 Bonfire composer based on the [Milkdown](https://milkdown.dev/) markdown editor
 
 ## ROADMAP
-- [x] Add emojis using :smile: convention
+- [x] Add emojis using gemoji convention
 - [x] Show emojis suggestions when typing : followed by 2 chars
 - [x] Show mentions suggestions when typing @ followed by 2 chars
 - [x] Show formatting suggestions when typing /
