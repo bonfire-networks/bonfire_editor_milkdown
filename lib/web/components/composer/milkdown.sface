@@ -1,9 +1,10 @@
 <div id="editor_milkdown_container" phx-update="ignore">
-  <div 
+  <div
     phx-debounce="blur"
-    phx-hook="Milkdown" 
+    phx-hook="Milkdown"
     id="editor"
-    class="w-full flex flex-1 h-full max-h-[240px]">
+    class="w-full flex flex-1 h-full max-h-[240px]"
+  >
     <input name="html_body" type="hidden" class="editor_hidden_input">
   </div>
 </div>

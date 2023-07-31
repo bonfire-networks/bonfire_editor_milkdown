@@ -1,3 +1,3 @@
 import Config
 
-Bonfire.Milkdown.RuntimeConfig.config()
+Bonfire.Editor.Milkdown.RuntimeConfig.config()

@@ -1,4 +1,4 @@
-defmodule Bonfire.Milkdown.Test.ConnHelpers do
+defmodule Bonfire.Editor.Milkdown.Test.ConnHelpers do
   import ExUnit.Assertions
   import Plug.Conn
   import Phoenix.ConnTest

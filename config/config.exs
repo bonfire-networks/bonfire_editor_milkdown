@@ -1,6 +1,6 @@
 import Config
 
-#### Basic configuration useful for tests, everything else should be in `Bonfire.Milkdown.RuntimeConfig`
+#### Basic configuration useful for tests, everything else should be in `Bonfire.Editor.Milkdown.RuntimeConfig`
 
 # You probably won't want to touch these. You might override some in
 # other config files.
@@ -17,11 +17,11 @@ config :mime, :types, %{
   "application/activity+json" => ["activity+json"]
 }
 
-config :bonfire_milkdown, :otp_app, :bonfire_milkdown
-config :bonfire_common, :otp_app, :bonfire_milkdown
-config :bonfire_milkdown, :repo_module, Bonfire.Common.Repo
-config :bonfire_milkdown, ecto_repos: [Bonfire.Common.Repo]
-config :bonfire_milkdown, :localisation_path, "priv/localisation"
+config :bonfire_editor_milkdown, :otp_app, :bonfire_editor_milkdown
+config :bonfire_common, :otp_app, :bonfire_editor_milkdown
+config :bonfire_editor_milkdown, :repo_module, Bonfire.Common.Repo
+config :bonfire_editor_milkdown, ecto_repos: [Bonfire.Common.Repo]
+config :bonfire_editor_milkdown, :localisation_path, "priv/localisation"
 
 config :bonfire_data_identity, Bonfire.Data.Identity.Credential, hasher_module: Argon2
 

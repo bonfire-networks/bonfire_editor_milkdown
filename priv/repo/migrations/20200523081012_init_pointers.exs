@@ -1,4 +1,4 @@
-defmodule Bonfire.Milkdown.Repo.Migrations.InitPointers  do
+defmodule Bonfire.Editor.Milkdown.Repo.Migrations.InitPointers  do
   @moduledoc false
   use Ecto.Migration
   import Pointers.Migration

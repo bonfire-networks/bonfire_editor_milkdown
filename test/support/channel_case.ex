@@ -1,4 +1,4 @@
-defmodule Bonfire.Milkdown.ChannelCase do
+defmodule Bonfire.Editor.Milkdown.ChannelCase do
   @moduledoc """
   This module defines the test case to be used by
   channel tests.
@@ -17,13 +17,13 @@ defmodule Bonfire.Milkdown.ChannelCase do
 
   use ExUnit.CaseTemplate
 
-  import Bonfire.Milkdown.Integration
+  import Bonfire.Editor.Milkdown.Integration
 
   using do
     quote do
       # Import conveniences for testing with channels
       import Phoenix.ChannelTest
-      import Bonfire.Milkdown.ChannelCase
+      import Bonfire.Editor.Milkdown.ChannelCase
 
       # The default endpoint for testing
       @endpoint Application.compile_env!(:bonfire, :endpoint_module)

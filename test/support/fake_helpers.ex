@@ -1,12 +1,12 @@
-defmodule Bonfire.Milkdown.Test.FakeHelpers do
+defmodule Bonfire.Editor.Milkdown.Test.FakeHelpers do
   alias Bonfire.Data.Identity.Account
-  alias Bonfire.Milkdown.Fake
-  alias Bonfire.Milkdown.Accounts
-  alias Bonfire.Milkdown.Users
+  alias Bonfire.Editor.Milkdown.Fake
+  alias Bonfire.Editor.Milkdown.Accounts
+  alias Bonfire.Editor.Milkdown.Users
 
   import ExUnit.Assertions
 
-  import Bonfire.Milkdown.Integration
+  import Bonfire.Editor.Milkdown.Integration
 
-  import Bonfire.Milkdown.Fake
+  import Bonfire.Editor.Milkdown.Fake
 end

@@ -1,4 +1,4 @@
-# Bonfire.Milkdown
+# Bonfire.Editor.Milkdown
 
 Bonfire composer based on the [Milkdown](https://milkdown.dev/) markdown editor
 
@@ -16,7 +16,7 @@ Bonfire composer based on the [Milkdown](https://milkdown.dev/) markdown editor
 
 ## Copyright and License
 
-Copyright (c) 2020 Bonfire, VoxPublica, and CommonsPub Contributors
+Copyright (c) 2023 Bonfire, Milkdown, ProseMirror and Remark Contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as

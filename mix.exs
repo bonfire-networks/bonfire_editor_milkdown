@@ -1,6 +1,6 @@
 Code.eval_file("mess.exs", (if File.exists?("../../lib/mix/mess.exs"), do: "../../lib/mix/"))
 
-defmodule Bonfire.Milkdown.MixProject do
+defmodule Bonfire.Editor.Milkdown.MixProject do
   use Mix.Project
 
   def project do
@@ -16,7 +16,7 @@ defmodule Bonfire.Milkdown.MixProject do
     end
     ++
     [
-      app: :bonfire_milkdown,
+      app: :bonfire_editor_milkdown,
       version: "0.0.1",
       elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),

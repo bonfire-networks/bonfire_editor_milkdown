@@ -1,6 +1,7 @@
-defmodule Bonfire.Milkdown.ComposerLive do
-  use Bonfire.UI.Common.Web, :stateless_component
-  use Bonfire.Common.Utils
+defmodule Bonfire.Editor.Milkdown do
+  use Surface.Component
+  # use Bonfire.UI.Common.Web, :stateless_component
+  # use Bonfire.Common.Utils
 
   prop smart_input_opts, :map, default: %{}
 

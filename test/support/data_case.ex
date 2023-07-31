@@ -1,4 +1,4 @@
-defmodule Bonfire.Milkdown.DataCase do
+defmodule Bonfire.Editor.Milkdown.DataCase do
   @moduledoc """
   This module defines the setup for tests requiring
   access to the application's data layer.
@@ -10,19 +10,19 @@ defmodule Bonfire.Milkdown.DataCase do
   we enable the SQL sandbox, so changes done to the database
   are reverted at the end of every test. If you are using
   PostgreSQL, you can even run database tests asynchronously
-  by setting `use Bonfire.Milkdown.DataCase, async: true`, although
+  by setting `use Bonfire.Editor.Milkdown.DataCase, async: true`, although
   this option is not recommended for other databases.
   """
 
   use ExUnit.CaseTemplate
-  import Bonfire.Milkdown.Integration
+  import Bonfire.Editor.Milkdown.Integration
 
   using do
     quote do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      # import Bonfire.Milkdown.DataCase
+      # import Bonfire.Editor.Milkdown.DataCase
     end
   end
 

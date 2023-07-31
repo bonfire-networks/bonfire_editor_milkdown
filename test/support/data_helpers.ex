@@ -1,4 +1,4 @@
-defmodule Bonfire.Milkdown.DataHelpers do
+defmodule Bonfire.Editor.Milkdown.DataHelpers do
   # import ExUnit.Assertions
-  # alias Bonfire.Milkdown.Fake
+  # alias Bonfire.Editor.Milkdown.Fake
 end

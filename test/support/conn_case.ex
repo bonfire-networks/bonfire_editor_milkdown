@@ -1,4 +1,4 @@
-defmodule Bonfire.Milkdown.ConnCase do
+defmodule Bonfire.Editor.Milkdown.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -26,14 +26,14 @@ defmodule Bonfire.Milkdown.ConnCase do
       import Bonfire.UI.Common.Testing.Helpers
 
       import Phoenix.LiveViewTest
-      # import Bonfire.Milkdown.ConnCase, async: true
+      # import Bonfire.Editor.Milkdown.ConnCase, async: true
 
-      import Bonfire.Milkdown.Test.ConnHelpers
-      import Bonfire.Milkdown.Test.FakeHelpers
+      import Bonfire.Editor.Milkdown.Test.ConnHelpers
+      import Bonfire.Editor.Milkdown.Test.FakeHelpers
 
-      alias Bonfire.Milkdown.Fake
-      import Bonfire.Milkdown.Fake
-      # alias Bonfire.Milkdown.Web.Router.Helpers, as: Routes
+      alias Bonfire.Editor.Milkdown.Fake
+      import Bonfire.Editor.Milkdown.Fake
+      # alias Bonfire.Editor.Milkdown.Web.Router.Helpers, as: Routes
 
       # The default endpoint for testing
       @endpoint Application.compile_env!(:bonfire, :endpoint_module)
@@ -41,7 +41,7 @@ defmodule Bonfire.Milkdown.ConnCase do
   end
 
   setup tags do
-    import Bonfire.Milkdown.Integration
+    import Bonfire.Editor.Milkdown.Integration
 
     Bonfire.Common.Test.Interactive.setup_test_repo(tags)
 
