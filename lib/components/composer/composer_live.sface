@@ -1,21 +1,9 @@
-<div 
+<div id="editor_milkdown_container" phx-update="ignore">
+  <div 
     phx-debounce="blur"
     phx-hook="Milkdown" 
     id="editor"
     class="w-full flex flex-1 h-full max-h-[240px]">
-  <!-- x-model="body" -->
-  <!-- <textarea
-    oninput="this.parentNode.dataset.value = this.value"
-    phx-debounce="blur"
-    class={@textarea_class, "p-2 resize-none md:p-1 composer textarea focus:outline-none focus:ring-0"}
-    name="html_body"
-    resize="none"
-    placeholder={l("Start typing...")}
-  >{e(@smart_input_opts, :text_suggestion, nil)}{e(@smart_input_opts, :text, nil)}</textarea>
-  <ul
-    tabindex="1"
-    class="absolute p-0 max-h-[230px] overflow-auto block z-50 w-72 px-1 divide-y menu menu-compact bg-base-200 divide-base-content/10 shadow-xl rounded-lg"
-  /> -->
-
-  <input name="html_body" type="hidden" class="editor_hidden_input">
+    <input name="html_body" type="hidden" class="editor_hidden_input">
+  </div>
 </div>

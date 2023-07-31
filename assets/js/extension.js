@@ -76,9 +76,13 @@ function mentionsPluginView(view) {
 
   return {
     update: (updatedView, prevState) => {
+      console.log("UPDATE")
+      console.log(updatedView)
+      console.log(prevState)
       provider.update(updatedView, prevState);
     },
     destroy: () => {
+      console.log("destroy")
       provider.destroy();
       content.remove();
     }
@@ -331,23 +335,6 @@ const createEditor = async (hidden_input, composer$) => {
   //   console.log("qui")
   //   console.log(composer$)
   // })
-  document.addEventListener('emoji:select', event => {
-    console.log("TETETE")
-    // if (target_field){ 
-    //     // if area is not focused, focus it
-    //     if (!target_field.matches(":focus")) {
-    //       target_field.focus();
-    //     }
-    
-    //   // Insert the emoji at the cursor position        
-    //     insertText(target_field, event.emoji + " ")
-    
-    //     // close the emojipicker adding style="display: none;"
-    //     // document.querySelector(".emoji-picker").setAttribute("style", "display: none;")
-    //   } else {     
-    //       console.log("dunno where to insert the emoji")
-    //   }
-  });
 
   composer$.addEventListener('click', (e) => {
     if (e.target.matches('.emoji_btn')) {
