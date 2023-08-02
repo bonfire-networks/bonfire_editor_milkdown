@@ -1,15 +1,19 @@
 import { defaultValueCtx, editorViewOptionsCtx, Editor, editorViewCtx, commandsCtx, rootCtx } from '@milkdown/core';
 import { insert, $command, callCommand } from '@milkdown/utils';
-import { commonmark, wrapInHeadingCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
+import { commonmark, wrapInHeadingCommand, wrapInBlockquoteCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
+import {
+  gfm,
+  insertTableCommand,
+  toggleStrikethroughCommand,
+} from "@milkdown/preset-gfm";
 import { emoji } from '@milkdown/plugin-emoji';
-import {placeholder, placeholderCtx} from 'milkdown-plugin-placeholder';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { SlashProvider } from '@milkdown/plugin-slash'
 import { slashFactory } from '@milkdown/plugin-slash';
-// import { nord } from '@milkdown/theme-nord';
+import {placeholder} from './placeholder'
 import { gemoji } from "gemoji";
+import { clipboard } from '@milkdown/plugin-clipboard';
 
-console.log('Milkdown Vanilla Shiki Highlight loaded');
 const MIN_PREFIX_LENGTH = 2
 const VALID_CHARS = '[\\w\\+_\\-:]'
 const MENTION_PREFIX = '(?:@)'
@@ -297,7 +301,6 @@ const createEditor = async (hidden_input, composer$) => {
   .config(ctx => {
     ctx.set(rootCtx, '#editor')
     ctx.set(defaultValueCtx, markdown)
-    // ctx.set(placeholderCtx, 'Type something here...')
     ctx.set(mentionSlash.key, {
       view: mentionsPluginView
     })
@@ -314,27 +317,90 @@ const createEditor = async (hidden_input, composer$) => {
     })
     ctx.update(editorViewOptionsCtx, (prev) => ({
       ...prev,
-      attributes: { placeholder: "Type your text here...",  class: 'editor prose prose-sm h-full p-2 focus:outline-none composer', spellcheck: 'false' },
+      attributes: { placeholder: "Type your text here...",  class: 'editor prose prose-sm h-full p-2 focus:outline-none composer w-full max-w-full', spellcheck: 'false' },
     }))
   })
   // .config(nord)
   .use(commonmark)
+  .use(gfm)
   .use(emoji)
   .use(listener)
-  // .use(placeholder)
   .use(mentionSlash)
   .use(emojisSlash)
+  .use(clipboard)
+  .use(placeholder)
   // .use(slash)
   .create()
  
-  
-  // const addEmojiCommand = $commandsCtx('AddEmoji', (ctx) => {
+  const heading_btn = document.getElementById('heading_btn');
+  const bold_btn = document.getElementById('bold_btn');
+  const italic_btn = document.getElementById('italic_btn');
+  const quote_btn = document.getElementById('quote_btn');
+  const strike_btn = document.getElementById('strike_btn');
+  const table_btn = document.getElementById('table_btn');
 
+  heading_btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    editor.action((ctx) => {
+      const commandManager = ctx.get(commandsCtx);
+      const view = ctx.get(editorViewCtx);
+      commandManager.call(wrapInHeadingCommand.key, 3);
+      view.focus()
+    });
+  })
+
+  bold_btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    editor.action((ctx) => {
+      const commandManager = ctx.get(commandsCtx);
+      const view = ctx.get(editorViewCtx);
+      commandManager.call(toggleStrongCommand.key);
+      view.focus()
+    });
+  })
+
+  italic_btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    editor.action((ctx) => {
+      const commandManager = ctx.get(commandsCtx);
+      const view = ctx.get(editorViewCtx);
+      commandManager.call(toggleEmphasisCommand.key);
+      view.focus()
+    });
+  })
+
+  // quote_btn.addEventListener('click', (e) => {
+  //   e.preventDefault();
+  //   editor.action((ctx) => {
+  //     const commandManager = ctx.get(commandsCtx);
+  //     const view = ctx.get(editorViewCtx);
+  //     commandManager.call(wrapInBlockquoteCommand.key);
+  //     view.focus()
+  //   });
   // })
-  // editor.action((ctx) => {
-  //   console.log("qui")
-  //   console.log(composer$)
+
+  strike_btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    editor.action((ctx) => {
+      const commandManager = ctx.get(commandsCtx);
+      const view = ctx.get(editorViewCtx);
+      commandManager.call(toggleStrikethroughCommand.key);
+      view.focus()
+    });
+  })
+
+  // table_btn.addEventListener('click', (e) => {
+  //   e.preventDefault();
+  //   editor.action((ctx) => {
+  //     const commandManager = ctx.get(commandsCtx);
+  //     const view = ctx.get(editorViewCtx);
+  //     commandManager.call(insertTableCommand.key);
+  //     view.focus()
+  //   });
   // })
+
+
+  
 
   composer$.addEventListener('click', (e) => {
     if (e.target.matches('.emoji_btn')) {
@@ -370,63 +436,6 @@ const createEditor = async (hidden_input, composer$) => {
         view.focus()
       })
     }
-
-
-    // if (e.target.matches('.heading_btn')) {
-    //   e.preventDefault();
-    //   editor.action((ctx) => {
-    //     // get command manager
-    //     const commandManager = ctx.get(commandsCtx);
-    //     const view = ctx.get(editorViewCtx);
-    //     const { state } = view;
-    //     const { selection } = state;
-    //     view.dispatch(
-    //       view.state.tr
-    //         .delete(selection.from - 1, selection.from)
-    //     );
-    //     // call command
-    //     commandManager.call(wrapInHeadingCommand.key, 3);
-    //     view.focus()
-    //   });
-    // }
-
-    // if (e.target.matches('.bold_btn')) {
-    //   e.preventDefault();
-    //   editor.action((ctx) => {
-    //     // get command manager
-    //     const commandManager = ctx.get(commandsCtx);
-    //     const view = ctx.get(editorViewCtx);
-    //     const { state } = view;
-    //     const { selection } = state;
-    //     view.dispatch(
-    //       view.state.tr
-    //         .delete(selection.from - 1, selection.from)
-    //     );
-    //     // call command
-    //     commandManager.call(toggleStrongCommand.key);
-    //     view.focus()
-    //   });
-    // }
-
-    // if (e.target.matches('.italic_btn')) {
-    //   e.preventDefault();
-    //   editor.action((ctx) => {
-    //     // get command manager
-    //     const commandManager = ctx.get(commandsCtx);
-    //     const view = ctx.get(editorViewCtx);
-    //     const { state } = view;
-    //     const { selection } = state;
-    //     view.dispatch(
-    //       view.state.tr
-    //         .delete(selection.from - 1, selection.from)
-    //     );
-    //     // call command
-    //     commandManager.call(toggleEmphasisCommand.key);
-    //     view.focus()
-    //   });
-    // }
-
-
   })
 
   return editor;
