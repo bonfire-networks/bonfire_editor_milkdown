@@ -7,10 +7,10 @@ Bonfire composer based on the [Milkdown](https://milkdown.dev/) markdown editor
 - [x] Show emojis suggestions when typing : followed by 2 chars
 - [x] Show mentions suggestions when typing @ followed by 2 chars
 - [x] Show formatting suggestions when typing /
-- [ ] Insert emojis from the suggestions list
+- [x] Insert emojis from the suggestions list
 - [x] Insert mentions from the suggestions list
 - [ ] Insert formatting from the suggestions list
-- [ ] Add placeholder when missing text
+- [x] Add placeholder when missing text
 - [ ] Upload images by dragging them in the editor
 
 
