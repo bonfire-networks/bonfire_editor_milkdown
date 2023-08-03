@@ -1,5 +1,5 @@
 import { defaultValueCtx, editorViewOptionsCtx, Editor, editorViewCtx, commandsCtx, rootCtx } from '@milkdown/core';
-import { insert, $command, callCommand } from '@milkdown/utils';
+import { replaceAll, $command, callCommand } from '@milkdown/utils';
 import { commonmark, wrapInHeadingCommand, wrapInBlockquoteCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
 import {
   gfm,
@@ -122,14 +122,16 @@ function emojisPluginView() {
         const index = gemoji.findIndex((emoji) => {
           return emoji.names.some((name) => name.includes(text));
         });
+        console.log(index)
         list = ''
         if (index > 0) {
           // Add max 4 items to the menu
           gemoji
           .filter((emoji) => {
+            console.log(emoji)
             return emoji.names.some((name) => name.includes(text));
           })
-          .slice(0, 4)
+          .slice(0, 6)
           .map((emoji) => {
             list += emojiItemRenderer(emoji, text);
           })
@@ -236,7 +238,7 @@ const emojiItemRenderer = (item, text) => {
     <li class="rounded-none">
       <button type="button" data-text="${text}" data-emoji=${item.emoji} class="emoji_btn gap-3 rounded-none w-full flex items-center">
         <div class="pointer-events-none flex items-baseline w-full gap-2">
-          <span>${item.emoji}</span> </span>:${item.names[0]}:</span>
+          <span>${item.emoji}</span>  <span class="truncate max-w-[220px]">:${item.names[0]}:</span>
         </div>
       </button>
     </li>`
@@ -332,12 +334,19 @@ const createEditor = async (hidden_input, composer$) => {
   // .use(slash)
   .create()
  
+
+  const submit_btn = document.getElementById('submit_btn');
   const heading_btn = document.getElementById('heading_btn');
   const bold_btn = document.getElementById('bold_btn');
   const italic_btn = document.getElementById('italic_btn');
-  const quote_btn = document.getElementById('quote_btn');
+  // const quote_btn = document.getElementById('quote_btn');
   const strike_btn = document.getElementById('strike_btn');
-  const table_btn = document.getElementById('table_btn');
+  // const table_btn = document.getElementById('table_btn');
+
+
+  submit_btn.addEventListener('click', (e) => {
+    editor.action(replaceAll(''))
+  })
 
   heading_btn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -443,7 +452,7 @@ const createEditor = async (hidden_input, composer$) => {
 
 MilkdownHooks.Milkdown = {
   mounted() {
-    const hidden_input = this.el.querySelector('.editor_hidden_input');
+    const hidden_input = document.querySelector('.editor_hidden_input');
     const composer$ = this.el
     createEditor(hidden_input, composer$)
   },
