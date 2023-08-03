@@ -5,8 +5,7 @@ defmodule Bonfire.Editor.Milkdown do
 
   prop smart_input_opts, :map, default: %{}
 
-  prop textarea_class, :css_class,
-    default: "w-full md:min-h-[280px] h-full"
+  prop textarea_class, :css_class, default: "w-full md:min-h-[280px] h-full"
 
   # needed by apps to use this editor to know how to process text they receive from it
   def output_format, do: :markdown
