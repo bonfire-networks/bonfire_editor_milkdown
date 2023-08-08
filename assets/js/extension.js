@@ -1,9 +1,8 @@
 import { defaultValueCtx, editorViewOptionsCtx, Editor, editorViewCtx, commandsCtx, rootCtx } from '@milkdown/core';
-import { replaceAll, $command, callCommand } from '@milkdown/utils';
+import { replaceAll} from '@milkdown/utils';
 import { commonmark, wrapInHeadingCommand, wrapInBlockquoteCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
 import {
   gfm,
-  insertTableCommand,
   toggleStrikethroughCommand,
 } from "@milkdown/preset-gfm";
 import { emoji } from '@milkdown/plugin-emoji';
@@ -13,6 +12,7 @@ import { slashFactory } from '@milkdown/plugin-slash';
 import {placeholder} from './placeholder'
 import { gemoji } from "gemoji";
 import { clipboard } from '@milkdown/plugin-clipboard';
+import { createPopup } from '@picmo/popup-picker';
 
 const MIN_PREFIX_LENGTH = 2
 const VALID_CHARS = '[\\w\\+_\\-:]'
@@ -334,6 +334,35 @@ const createEditor = async (hidden_input, composer$) => {
   // .use(slash)
   .create()
  
+
+  const trigger = document.querySelector('.emoji-button');
+  
+  trigger.addEventListener('click', () => {
+    picker.toggle();
+  });
+  
+  const picker = createPopup({}, {
+    referenceElement: trigger,
+    triggerElement: trigger,
+    emojiSize: '1.75rem',
+    className: 'z-[9999]',
+  });
+  
+
+  picker.addEventListener('emoji:select', event => {
+    console.log(event.emoji)
+    editor.action((ctx) => {
+      const view = ctx.get(editorViewCtx);
+      const { state } = view;
+      const { selection } = state;
+      view.dispatch(
+        view.state.tr
+          .insertText(event.emoji + ' ')
+      );
+      view.focus()
+    })
+  });
+
 
   const submit_btn = document.getElementById('submit_btn');
   const heading_btn = document.getElementById('heading_btn');

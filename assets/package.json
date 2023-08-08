@@ -5,6 +5,8 @@
   "repository": {},
   "license": "AGPL-3.0",
   "dependencies": {
+    "picmo": "^5.8.1",
+    "@picmo/popup-picker": "^5.8.1",
     "@milkdown/core": "7.2.4",
     "@milkdown/ctx": "7.2.4",
     "@milkdown/plugin-clipboard": "^7.2.4",
