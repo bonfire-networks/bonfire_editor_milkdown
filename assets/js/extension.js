@@ -1,5 +1,5 @@
 import { defaultValueCtx, editorViewOptionsCtx, Editor, editorViewCtx, commandsCtx, rootCtx } from '@milkdown/core';
-import { replaceAll} from '@milkdown/utils';
+import { replaceAll, insert} from '@milkdown/utils';
 import { commonmark, wrapInHeadingCommand, wrapInBlockquoteCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
 import {
   gfm,
@@ -296,6 +296,7 @@ const emojiItemRenderer = (item, text) => {
 const mentionSlash = slashFactory('mentions-slash');
 const emojisSlash = slashFactory('emojis-slash');
 // const slash = slashFactory('slash');
+let isUpdatingMarkdown = false;
 
 const createEditor = async (hidden_input, composer$) => {
   const editor = await Editor
@@ -313,14 +314,35 @@ const createEditor = async (hidden_input, composer$) => {
     // ctx.set(slash.key, {
     //   view: slashPluginView
     // })
-    ctx.get(listenerCtx).markdownUpdated((ctx, markdown, prevMarkdown) => {
-      output = markdown;
-      hidden_input.value = markdown;
-    })
-    ctx.update(editorViewOptionsCtx, (prev) => ({
-      ...prev,
-      attributes: { placeholder: "Type your text here...",  class: 'editor prose prose-sm h-full p-2 focus:outline-none composer w-full max-w-full', spellcheck: 'false' },
-    }))
+  
+      ctx.update(editorViewOptionsCtx, (prev) => ({
+        ...prev,
+        attributes: { 
+          placeholder: "Type your text here...",  
+          class: 'editor prose prose-sm h-full p-2 focus:outline-none composer w-full max-w-full', 
+          spellcheck: 'false' },
+      }))
+      ctx.get(listenerCtx)
+      .markdownUpdated((ctx, markdown, prevMarkdown) => {
+
+        if (markdown !== prevMarkdown) {
+          const transformedMarkdown = markdown
+          .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
+          .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+          console.log(transformedMarkdown)
+          hidden_input.value = transformedMarkdown;
+          
+          const view = ctx.get(editorViewCtx);
+          const {state} = view;
+          const { doc } = state;
+          const currentText = doc.textContent;
+          
+          console.log(currentText)
+          view.dispatch(transformedMarkdown)
+        }    
+        
+        
+        })
   })
   // .config(nord)
   .use(commonmark)
