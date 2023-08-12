@@ -311,10 +311,14 @@ const createEditor = async (hidden_input, composer$) => {
       
       view: emojisPluginView
     })
-    // ctx.set(slash.key, {
-    //   view: slashPluginView
-    // })
-  
+    ctx.get(listenerCtx)
+      .markdownUpdated((ctx, markdown, prevMarkdown) => {  
+        const transformedMarkdown = markdown
+        .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+        console.log(transformedMarkdown)
+        hidden_input.value = transformedMarkdown;
+      })
       ctx.update(editorViewOptionsCtx, (prev) => ({
         ...prev,
         attributes: { 
@@ -322,27 +326,6 @@ const createEditor = async (hidden_input, composer$) => {
           class: 'editor prose prose-sm h-full p-2 focus:outline-none composer w-full max-w-full', 
           spellcheck: 'false' },
       }))
-      ctx.get(listenerCtx)
-      .markdownUpdated((ctx, markdown, prevMarkdown) => {
-
-        if (markdown !== prevMarkdown) {
-          const transformedMarkdown = markdown
-          .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
-          .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-          console.log(transformedMarkdown)
-          hidden_input.value = transformedMarkdown;
-          
-          const view = ctx.get(editorViewCtx);
-          const {state} = view;
-          const { doc } = state;
-          const currentText = doc.textContent;
-          
-          console.log(currentText)
-          view.dispatch(transformedMarkdown)
-        }    
-        
-        
-        })
   })
   // .config(nord)
   .use(commonmark)
