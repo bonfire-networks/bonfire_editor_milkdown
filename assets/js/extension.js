@@ -203,7 +203,7 @@ function getFeedItems(queryText, prefix) {
           let values = data.map((item) => ({
             id: item.id,
             value: item.name,
-            link: item.link,
+            icon: item.icon
           }));
           resolve(values);
         })
@@ -221,7 +221,7 @@ const mentionItemRenderer = (item, text) => {
       <button type="button" data-mention="${item.id}" data-text="${text}" class="mention_btn rounded-none w-full flex items-center">
         <div class="flex items-center gap-3 w-full pointer-events-none">
           <div class="flex-shrink-0">
-            <img class="h-6 w-6 rounded-full" src="https://picsum.photos/80" alt="">
+            <img class="h-6 w-6 rounded-full" src="${item.icon}" alt="">
           </div>
           <div class="gap-0 items-start flex flex-col" data-id="${item.id}" data-input="${text}">
             <div class="text-sm truncate max-w-[240px] text-base-content font-semibold">${item.value}</div>
