@@ -32,7 +32,18 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.1.1.tgz#1a5b1959a528e374e8037c4396c3e825d6cf4a83"
   integrity sha512-m0G6wlnhm/AX0H12IOWtK8gASEMffnX08RtKkCgTdHb9JpHKGloI7icFfLg9ZmQeavcvR0PKmzxClyuFPSjKWw==
 
-"@milkdown/core@7.2.4", "@milkdown/core@^7":
+"@milkdown/core@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/core/-/core-7.3.0.tgz#f4e2ffa07025db4f32b2cab253a40a94f45115e4"
+  integrity sha512-spB2mti5glP/ZJROgNZuaVgDC0djhMEnd9eu5iEmm4qqUj4RabKDZkVox9kZE0ngn6msWtDW/qQwnIFd4iFGdQ==
+  dependencies:
+    "@milkdown/exception" "7.3.0"
+    remark-parse "^10.0.1"
+    remark-stringify "^10.0.2"
+    tslib "^2.5.0"
+    unified "^10.1.0"
+
+"@milkdown/core@^7":
   version "7.2.4"
   resolved "https://registry.npmjs.org/@milkdown/core/-/core-7.2.4.tgz"
   integrity sha512-ztO9DlKNFX7oPCUjUIszoDxTDbqEjHcCeIRlkQy43c1TOcG+87Pw7OP5dphFWBJf6D4lAnGHAU+xTIth0NCXqQ==
@@ -44,7 +55,15 @@
     tslib "^2.5.0"
     unified "^10.1.0"
 
-"@milkdown/ctx@7.2.4", "@milkdown/ctx@^7":
+"@milkdown/ctx@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/ctx/-/ctx-7.3.0.tgz#b92d3d7d002a63f3c4074238dfbc59b5b31173c5"
+  integrity sha512-VQG/Q0TrEcZ5HbTQrqiXgeOwZYv7qmnH8X5msS9GL8bvALGUHJ3QjxQONJrK53ZZ5HbHPSi7QOBDlAn57m69fg==
+  dependencies:
+    "@milkdown/exception" "7.3.0"
+    tslib "^2.5.0"
+
+"@milkdown/ctx@^7":
   version "7.2.4"
   resolved "https://registry.npmjs.org/@milkdown/ctx/-/ctx-7.2.4.tgz"
   integrity sha512-EffizTJgwI4tPQS0QZYBC7/p9GiD4fToTObjphlQ+OgJYyu+n7P0aYWr0LEEM1mUDTCBM8lMIef50pfuA0gDbw==
@@ -59,74 +78,102 @@
   dependencies:
     tslib "^2.5.0"
 
-"@milkdown/plugin-clipboard@^7.2.4":
-  version "7.2.4"
-  resolved "https://registry.npmjs.org/@milkdown/plugin-clipboard/-/plugin-clipboard-7.2.4.tgz"
-  integrity sha512-zjJNXDMxBYPhYCP5EBMJ2wns8svEPXpH08WUqL1zdNh4BNLD+bi8DrKQbTbnIjIzR/Ph8m9RVbHXA6STvwTEWA==
+"@milkdown/exception@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/exception/-/exception-7.3.0.tgz#737048465a4bf0a577057358580d337f99eb1802"
+  integrity sha512-ZqN+3dOfTQ8OafkJz6WqNrNWxg3D6hACMa2XyPul+uVU0MLZXURfijCO26eByNlhG05w0Uo/FJfaapPZO3aE6g==
   dependencies:
-    "@milkdown/utils" "7.2.4"
     tslib "^2.5.0"
 
-"@milkdown/plugin-emoji@7.2.4":
-  version "7.2.4"
-  resolved "https://registry.npmjs.org/@milkdown/plugin-emoji/-/plugin-emoji-7.2.4.tgz"
-  integrity sha512-oY4BrOoVcfJCsVtUzq+6xQTfj9HfcO3HIjXfiKj7ON4ibFwAR/RfwrR7QQ3f5Rs6OeGGeXTgYH2g/V83Zu5SVw==
+"@milkdown/plugin-clipboard@^7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/plugin-clipboard/-/plugin-clipboard-7.3.0.tgz#d83bc230ea0903ba925ced7d57682413e636559f"
+  integrity sha512-KTvoOC8bJyOLqejpKWK1PAqoNH6WKdS7dGByy92rI3zQeJn9QPdzR2w2mi3d4j3AJHVxEimApGJRHrAOcb+i1w==
   dependencies:
-    "@milkdown/exception" "7.2.4"
-    "@milkdown/utils" "7.2.4"
+    "@milkdown/utils" "7.3.0"
+    tslib "^2.5.0"
+
+"@milkdown/plugin-emoji@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/plugin-emoji/-/plugin-emoji-7.3.0.tgz#43e99d30b75d94162dd9f56c6f108af02c529cbc"
+  integrity sha512-KqdrjTlH7kjc3xwYAgM6nYVhV7v0k6OUdosGMIH7jm8PiOn7EGaOqkiSyi8Cbfu/3Veb1gwWyKk+Lla0kbBS8Q==
+  dependencies:
+    "@milkdown/exception" "7.3.0"
+    "@milkdown/utils" "7.3.0"
     "@types/node-emoji" "^1.8.1"
     emoji-regex "^10.0.0"
     node-emoji "^2.0.0"
-    remark-emoji "^3.0.1"
+    remark-emoji "^4.0.0"
     tslib "^2.5.0"
     twemoji "^14.0.1"
-    unist-util-visit "^4.0.0"
+    unist-util-visit "^5.0.0"
 
-"@milkdown/plugin-listener@7.2.4":
-  version "7.2.4"
-  resolved "https://registry.npmjs.org/@milkdown/plugin-listener/-/plugin-listener-7.2.4.tgz"
-  integrity sha512-Yes3zB3hOGPEsY8hdv9wNs0G1iwq29E3QkuNPn8pbPA92ak9funb93Rzcen8dU954MwmkE3lIt+2+1/ANejRVQ==
+"@milkdown/plugin-listener@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/plugin-listener/-/plugin-listener-7.3.0.tgz#8a8e1c7df2dd2aaf7d12faa53c697e04d754a18f"
+  integrity sha512-W/52MQ0occGD7MLXz7pDaeUA5NClz9bPuU7ZypOMY8x3CmbVXQMNMfOoEC0udgeRRbroZ+Vj4SEcedZ/CU6gPA==
   dependencies:
-    "@milkdown/utils" "7.2.4"
+    "@milkdown/utils" "7.3.0"
     "@types/lodash.debounce" "^4.0.7"
     lodash.debounce "^4.0.8"
     tslib "^2.5.0"
 
-"@milkdown/plugin-slash@7.2.4":
-  version "7.2.4"
-  resolved "https://registry.npmjs.org/@milkdown/plugin-slash/-/plugin-slash-7.2.4.tgz"
-  integrity sha512-rg1cPdV06bdL+nbxdZJ2SHJXnNA/WZaiPhwC76pYTK1Y/qHA2eLBpVqlG3nb5Z9Cw4jQy4kri0FttxKFX7wlFA==
+"@milkdown/plugin-slash@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/plugin-slash/-/plugin-slash-7.3.0.tgz#709eed4b50dc47f49aa35e2ea4f9c4dac9bae42a"
+  integrity sha512-z1WMj92V5Mh+pdUMMamXpbpTndBZDKrHRCdIgzMpDx7Dk44sKitxJRy9PmGZSIEUPAYDoguhjOu+pb9f6PT7ZQ==
   dependencies:
-    "@milkdown/exception" "7.2.4"
-    "@milkdown/utils" "7.2.4"
+    "@milkdown/exception" "7.3.0"
+    "@milkdown/utils" "7.3.0"
     "@types/lodash.debounce" "^4.0.7"
     lodash.debounce "^4.0.8"
     tippy.js "^6.3.7"
     tslib "^2.5.0"
 
-"@milkdown/preset-commonmark@7.2.4":
-  version "7.2.4"
-  resolved "https://registry.npmjs.org/@milkdown/preset-commonmark/-/preset-commonmark-7.2.4.tgz"
-  integrity sha512-Exncik8ucDhxzE5EPF+YR/213ioiLZ81mKgqJo3WN2HM9Zvbj3fe26cvROvf6y+lmZi0+8xDRb5wRni/z7w6xw==
+"@milkdown/preset-commonmark@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/preset-commonmark/-/preset-commonmark-7.3.0.tgz#53edd865044d7cdcbb872210ed76b7064e2810f2"
+  integrity sha512-9ehBLkiLomp2av6E7YiRwihx/YsZ+LR80Y21e+Qzs5d6eq+payhblKQSaYYlVECA7gwLIOy67Lu8jxkOnO++rw==
   dependencies:
-    "@milkdown/exception" "7.2.4"
-    "@milkdown/utils" "7.2.4"
+    "@milkdown/exception" "7.3.0"
+    "@milkdown/utils" "7.3.0"
     "@sindresorhus/slugify" "^2.2.0"
     remark-inline-links "^6.0.0"
     tslib "^2.5.0"
-    unist-util-visit "^4.0.0"
+    unist-util-visit "^5.0.0"
 
-"@milkdown/preset-gfm@^7.2.4":
-  version "7.2.4"
-  resolved "https://registry.yarnpkg.com/@milkdown/preset-gfm/-/preset-gfm-7.2.4.tgz#e05a9e3d13af386ed69e965562eaaa370797e25d"
-  integrity sha512-+mRVOwjrYiJ0Do4Cpk+ixbP+pwAIZKh8bQiS5/gvrCMOabPLcUK4fsajWPOOcqwNTsmC5kbVn/NnTe+3GtIxGQ==
+"@milkdown/preset-gfm@^7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/preset-gfm/-/preset-gfm-7.3.0.tgz#01575be1d080cd52cf6a4325c31e8b566288d5f1"
+  integrity sha512-ulaJ1Ck90SflxIe+tjq092ntu8PNbIM/pF0oYUuuUFHcKVkwqMmYevjRmFYo2MZiBvUv8eYOLbJ1xnGauB0aAg==
   dependencies:
-    "@milkdown/exception" "7.2.4"
-    "@milkdown/utils" "7.2.4"
+    "@milkdown/exception" "7.3.0"
+    "@milkdown/utils" "7.3.0"
     remark-gfm "^3.0.0"
     tslib "^2.5.0"
 
-"@milkdown/prose@7.2.4", "@milkdown/prose@^7":
+"@milkdown/prose@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/prose/-/prose-7.3.0.tgz#a2c339187d90cf1494450592c41812e6316f03da"
+  integrity sha512-YUx30G++v9RYw6mM5ybvvezaJBdSyhrDsVeuAzYkBRfV2fwEV1airBt96BqY+FeICYqE1eTCUty/gaPzpcwbPg==
+  dependencies:
+    "@milkdown/exception" "7.3.0"
+    prosemirror-changeset "^2.2.1"
+    prosemirror-commands "^1.5.2"
+    prosemirror-dropcursor "^1.8.1"
+    prosemirror-gapcursor "^1.3.2"
+    prosemirror-history "^1.3.2"
+    prosemirror-inputrules "^1.2.1"
+    prosemirror-keymap "^1.2.2"
+    prosemirror-model "^1.19.2"
+    prosemirror-schema-list "^1.3.0"
+    prosemirror-state "^1.4.3"
+    prosemirror-tables "^1.3.4"
+    prosemirror-transform "^1.7.3"
+    prosemirror-view "^1.31.5"
+    tslib "^2.5.0"
+
+"@milkdown/prose@^7":
   version "7.2.4"
   resolved "https://registry.npmjs.org/@milkdown/prose/-/prose-7.2.4.tgz"
   integrity sha512-v5eBFqySdOYaFQwwGOzCNKoPonMXN7TE+bUD0MfmOhELxb4fAgWQVeOM/uA3hmLz4frFuiv+KzrD+/gFEnwUjw==
@@ -147,15 +194,27 @@
     prosemirror-view "^1.31.5"
     tslib "^2.5.0"
 
-"@milkdown/theme-nord@7.2.4":
-  version "7.2.4"
-  resolved "https://registry.npmjs.org/@milkdown/theme-nord/-/theme-nord-7.2.4.tgz"
-  integrity sha512-egmTcf9KnPr0sjj5SQNcLxQfwQ3LZ+fuf4Dtn4ATfdJBkJV13ufbG6mG7o12yq5FtjgOPDvdC4WFINam9Wj8sQ==
+"@milkdown/theme-nord@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/theme-nord/-/theme-nord-7.3.0.tgz#373ff06e179f99cb681ffcc80da6a6ff9532d42f"
+  integrity sha512-sXFY8wxn/38BbQJyrJQvj8/h0kKvrVr3q8U/lSzNoCywH1hQ/qapSFDs3HvXLSWOZm/V0CaIP7H/MwHKF8N6MA==
   dependencies:
-    clsx "^1.2.1"
+    clsx "^2.0.0"
     tslib "^2.5.0"
 
-"@milkdown/transformer@7.2.4", "@milkdown/transformer@^7":
+"@milkdown/transformer@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/transformer/-/transformer-7.3.0.tgz#9be11cf559997139d1ecd8a40dd707db85f9ee1e"
+  integrity sha512-6QGutmJvg1sk3aVQGG4kX+MmemLnd0v1x7uoGeyOuQT4MIPAquxPmzECHwRJJal+eyhFLnssOZLzC6qF85b+bQ==
+  dependencies:
+    "@milkdown/exception" "7.3.0"
+    remark "^14.0.1"
+    remark-parse "^10.0.2"
+    remark-stringify "^10.0.3"
+    tslib "^2.5.0"
+    unified "^10.1.0"
+
+"@milkdown/transformer@^7":
   version "7.2.4"
   resolved "https://registry.npmjs.org/@milkdown/transformer/-/transformer-7.2.4.tgz"
   integrity sha512-ZSgxzh7yUemSrkE6JIZqscct45/1xHXc6vtAjTdOzYCkpyG+RdIJOXw1TtaloYo88QufymPxz7Cu7QS6F8Kr0A==
@@ -169,12 +228,12 @@
     tslib "^2.5.0"
     unified "^10.1.0"
 
-"@milkdown/utils@7.2.4":
-  version "7.2.4"
-  resolved "https://registry.npmjs.org/@milkdown/utils/-/utils-7.2.4.tgz"
-  integrity sha512-vnqeLv6XoaYLaxyrj0XpdpGyMWbKEQ8Hbk4+f7FYZL9TfGlvZuYlcvvAt5BBZnFXnqIimGIJ+T48eb17z7DsrA==
+"@milkdown/utils@7.3.0":
+  version "7.3.0"
+  resolved "https://registry.yarnpkg.com/@milkdown/utils/-/utils-7.3.0.tgz#1420e1d550057f30936a3bc8f3f4bb9e13b9cba6"
+  integrity sha512-hOb6UwRIX2e7lpAn3sjAtsF2idzQN/wQ9MLbjoIevQXjO1EgNYiBTFIfTDnI4ka+VrVScvZtZ2D8cAA+3+ndxw==
   dependencies:
-    "@milkdown/exception" "7.2.4"
+    "@milkdown/exception" "7.3.0"
     nanoid "^4.0.0"
     tslib "^2.5.0"
 
@@ -236,6 +295,13 @@
   dependencies:
     "@types/unist" "^2"
 
+"@types/mdast@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@types/mdast/-/mdast-4.0.0.tgz#9f9462d4584a8b3e3711ea8bb4a94c485559ab90"
+  integrity sha512-YLeG8CujC9adtj/kuDzq1N4tCDYKoZ5l/bnjq8d74+t/3q/tHquJOJKUQXJrLCflOHpKjXgcI/a929gpmLOEng==
+  dependencies:
+    "@types/unist" "*"
+
 "@types/ms@*":
   version "0.7.31"
   resolved "https://registry.npmjs.org/@types/ms/-/ms-0.7.31.tgz"
@@ -245,6 +311,11 @@
   version "1.8.2"
   resolved "https://registry.npmjs.org/@types/node-emoji/-/node-emoji-1.8.2.tgz"
   integrity sha512-PfF1qL/9veo8BSHLV84C9ORNr3lHSlnWJ6yU8OdNufoftajeWHTLVbGHvp2B7e7DPDS9gMs6cfeSsqo5rqSitg==
+
+"@types/unist@*", "@types/unist@^3.0.0":
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/@types/unist/-/unist-3.0.0.tgz#988ae8af1e5239e89f9fbb1ade4c935f4eeedf9a"
+  integrity sha512-MFETx3tbTjE7Uk6vvnWINA/1iJ7LuMdO4fcq8UfF0pRbj01aGLduVvQcRyswuACJdpnHgg8E3rQLhaRdNEJS0w==
 
 "@types/unist@^2", "@types/unist@^2.0.0", "@types/unist@^2.0.6":
   version "2.0.7"
@@ -271,10 +342,10 @@ character-entities@^2.0.0:
   resolved "https://registry.npmjs.org/character-entities/-/character-entities-2.0.2.tgz"
   integrity sha512-shx7oQ0Awen/BRIdkjkvz54PnEEI/EjwXDSIZp86/KKdbafHh1Df/RYGBhn4hbe2+uKC9FnT5UCEdyPz3ai9hQ==
 
-clsx@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.npmjs.org/clsx/-/clsx-1.2.1.tgz"
-  integrity sha512-EcR6r5a8bj6pu3ycsa/E/cKVGuTgZJZdsyUYHOksG/UHIiKfjxzRxYJpyVBwYaQeOvghal9fcc4PidlgzugAQg==
+clsx@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/clsx/-/clsx-2.0.0.tgz#12658f3fd98fafe62075595a5c30e43d18f3d00b"
+  integrity sha512-rQ1+kcj+ttHG0MKVGBUXwayCCF1oh39BF5COIpRzuCEv8Mwjv0XucrI2ExNTOn9IlLifGClWQcU9BrZORvtw6Q==
 
 debug@^4.0.0:
   version "4.3.4"
@@ -537,11 +608,6 @@ lodash.debounce@^4.0.8:
   resolved "https://registry.npmjs.org/lodash.debounce/-/lodash.debounce-4.0.8.tgz"
   integrity sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==
 
-lodash@^4.17.21:
-  version "4.17.21"
-  resolved "https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"
-  integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
-
 longest-streak@^3.0.0:
   version "3.1.0"
   resolved "https://registry.npmjs.org/longest-streak/-/longest-streak-3.1.0.tgz"
@@ -561,7 +627,7 @@ mdast-util-definitions@^5.0.0:
     "@types/unist" "^2.0.0"
     unist-util-visit "^4.0.0"
 
-mdast-util-find-and-replace@^2.0.0, mdast-util-find-and-replace@^2.2.2:
+mdast-util-find-and-replace@^2.0.0:
   version "2.2.2"
   resolved "https://registry.npmjs.org/mdast-util-find-and-replace/-/mdast-util-find-and-replace-2.2.2.tgz"
   integrity sha512-MTtdFRz/eMDHXzeK6W3dO7mXUlF82Gom4y0oOgvHhh/HXZAGvIQDUvQ0SuUx+j2tv44b8xTHOm8K/9OoRFnXKw==
@@ -570,6 +636,16 @@ mdast-util-find-and-replace@^2.0.0, mdast-util-find-and-replace@^2.2.2:
     escape-string-regexp "^5.0.0"
     unist-util-is "^5.0.0"
     unist-util-visit-parents "^5.0.0"
+
+mdast-util-find-and-replace@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/mdast-util-find-and-replace/-/mdast-util-find-and-replace-3.0.0.tgz#ca0a9232afdc53f4260582ac2d0227cf94b4a220"
+  integrity sha512-8wLPIKAvGdA5jgkI8AYKfSorV3og3vE6HA+gKeKEZydbi1EtUu2g4XCxIBj3R+AsFqY/uRtoYbH30tiWsFKkBQ==
+  dependencies:
+    "@types/mdast" "^4.0.0"
+    escape-string-regexp "^5.0.0"
+    unist-util-is "^6.0.0"
+    unist-util-visit-parents "^6.0.0"
 
 mdast-util-from-markdown@^1.0.0:
   version "1.3.1"
@@ -979,14 +1055,7 @@ nanoid@^4.0.0:
   resolved "https://registry.npmjs.org/nanoid/-/nanoid-4.0.2.tgz"
   integrity sha512-7ZtY5KTCNheRGfEFxnedV5zFiORN1+Y1N6zvPTnHQd8ENUvfaDBeuJDZb2bN/oXwXxu3qkTXDzy57W5vAmDTBw==
 
-node-emoji@^1.11.0:
-  version "1.11.0"
-  resolved "https://registry.npmjs.org/node-emoji/-/node-emoji-1.11.0.tgz"
-  integrity sha512-wo2DpQkQp7Sjm2A0cq+sN7EHKO6Sl0ctXeBdFZrL9T9+UywORbufTcTZxom8YqpLQt/FqNMUkOpkZrJVYSKD3A==
-  dependencies:
-    lodash "^4.17.21"
-
-node-emoji@^2.0.0:
+node-emoji@^2.0.0, node-emoji@^2.1.0:
   version "2.1.0"
   resolved "https://registry.npmjs.org/node-emoji/-/node-emoji-2.1.0.tgz"
   integrity sha512-tcsBm9C6FmPN5Wo7OjFi9lgMyJjvkAeirmjR/ax8Ttfqy4N8PoFic26uqFTIgayHPNI5FH4ltUvfh9kHzwcK9A==
@@ -1140,14 +1209,14 @@ prosemirror-view@^1.0.0, prosemirror-view@^1.1.0, prosemirror-view@^1.13.3, pros
     prosemirror-state "^1.0.0"
     prosemirror-transform "^1.1.0"
 
-remark-emoji@^3.0.1:
-  version "3.1.2"
-  resolved "https://registry.npmjs.org/remark-emoji/-/remark-emoji-3.1.2.tgz"
-  integrity sha512-QwhAzNk27Ol64uV4z/3n55MKrNz9bhr8wg+mO5aGqIYDS+jUarS1d8Y0ZIeEBVhfGkXj6gGYM+727sOgAPvV/A==
+remark-emoji@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/remark-emoji/-/remark-emoji-4.0.0.tgz#a1b3c1b230a7c8ae84d41a01d65fb642bb6520c6"
+  integrity sha512-lQP1lFaYOz6zyJTBfOwYChM1YkgJEVcxSnUBkjo9qujqWwpY36MRFzDjYDk9YNdHqkw5yExB8MnVVHb6wX9QNA==
   dependencies:
     emoticon "^4.0.1"
-    mdast-util-find-and-replace "^2.2.2"
-    node-emoji "^1.11.0"
+    mdast-util-find-and-replace "^3.0.0"
+    node-emoji "^2.1.0"
 
 remark-gfm@^3.0.0:
   version "3.0.1"
@@ -1304,6 +1373,13 @@ unist-util-is@^5.0.0:
   dependencies:
     "@types/unist" "^2.0.0"
 
+unist-util-is@^6.0.0:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/unist-util-is/-/unist-util-is-6.0.0.tgz#b775956486aff107a9ded971d996c173374be424"
+  integrity sha512-2qCTHimwdxLfz+YzdGfkqNlH0tLi9xjTnHddPmJwtIG9MGsdbutfTc4P+haPD7l7Cjxf/WZj+we5qfVPvvxfYw==
+  dependencies:
+    "@types/unist" "^3.0.0"
+
 unist-util-stringify-position@^3.0.0:
   version "3.0.3"
   resolved "https://registry.npmjs.org/unist-util-stringify-position/-/unist-util-stringify-position-3.0.3.tgz"
@@ -1319,6 +1395,14 @@ unist-util-visit-parents@^5.0.0, unist-util-visit-parents@^5.1.1:
     "@types/unist" "^2.0.0"
     unist-util-is "^5.0.0"
 
+unist-util-visit-parents@^6.0.0:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/unist-util-visit-parents/-/unist-util-visit-parents-6.0.1.tgz#4d5f85755c3b8f0dc69e21eca5d6d82d22162815"
+  integrity sha512-L/PqWzfTP9lzzEa6CKs0k2nARxTdZduw3zyh8d2NVBnsyvHjSX4TWse388YrrQKbvI8w20fGjGlhgT96WwKykw==
+  dependencies:
+    "@types/unist" "^3.0.0"
+    unist-util-is "^6.0.0"
+
 unist-util-visit@^4.0.0:
   version "4.1.2"
   resolved "https://registry.npmjs.org/unist-util-visit/-/unist-util-visit-4.1.2.tgz"
@@ -1327,6 +1411,15 @@ unist-util-visit@^4.0.0:
     "@types/unist" "^2.0.0"
     unist-util-is "^5.0.0"
     unist-util-visit-parents "^5.1.1"
+
+unist-util-visit@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/unist-util-visit/-/unist-util-visit-5.0.0.tgz#a7de1f31f72ffd3519ea71814cccf5fd6a9217d6"
+  integrity sha512-MR04uvD+07cwl/yhVuVWAtw+3GOR/knlL55Nd/wAdblk27GCVt3lqpTivy/tkJcZoNPzTwS1Y+KMojlLDhoTzg==
+  dependencies:
+    "@types/unist" "^3.0.0"
+    unist-util-is "^6.0.0"
+    unist-util-visit-parents "^6.0.0"
 
 universalify@^0.1.0, universalify@^0.1.2:
   version "0.1.2"

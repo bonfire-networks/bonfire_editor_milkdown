@@ -54,6 +54,7 @@ function mentionsPluginView(view) {
       // Display the menu if the last character is `@` followed by 2 chars.
       if (mentions) {
         // get the characters that follows the `@` in currentText
+        console.log("qui")
         const text = mentions[1].split('@').pop()
 
         return getFeedItems(text, '@').then(res => {
@@ -312,13 +313,16 @@ const createEditor = async (hidden_input, composer$) => {
       view: emojisPluginView
     })
     ctx.get(listenerCtx)
-      .markdownUpdated((ctx, markdown, prevMarkdown) => {  
-        const transformedMarkdown = markdown
+    .markdownUpdated((ctx, markdown, prevMarkdown) => {  
+      const transformedMarkdown = markdown
         .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-        console.log(transformedMarkdown)
-        hidden_input.value = transformedMarkdown;
-      })
+        .replace(/\[(.*?)\]\(.*?\)/g, '$1');
+      hidden_input.value = transformedMarkdown;
+      const inputEvent = new Event('input', { 
+        bubbles: true, 
+      });
+      hidden_input.dispatchEvent(inputEvent);
+    })
       ctx.update(editorViewOptionsCtx, (prev) => ({
         ...prev,
         attributes: { 
