@@ -1,5 +1,4 @@
 <div class="h-full flex-1 grow" id="editor_milkdown_container" phx-update="ignore">
-    <input name={@field_name}  type="hidden" class="editor_hidden_input" value={e(@smart_input_opts, :text, nil) || e(@smart_input_opts, :text_suggestion, nil)} />
   <!-- <div>{e(@smart_input_opts, :text, nil) || e(@smart_input_opts, :text_suggestion, nil)}</div> -->
     <div phx-debounce="blur" phx-hook="Milkdown" id="editor" class="w-full flex flex-1 h-full">
   </div>
