@@ -314,14 +314,24 @@ const createEditor = async (hidden_input, composer$) => {
     })
     ctx.get(listenerCtx)
     .markdownUpdated((ctx, markdown, prevMarkdown) => {  
+
       const transformedMarkdown = markdown
-        .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
-        .replace(/\[(.*?)\]\(.*?\)/g, '$1');
-      hidden_input.value = transformedMarkdown;
-      const inputEvent = new Event('input', { 
-        bubbles: true, 
-      });
-      hidden_input.dispatchEvent(inputEvent);
+      .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1');
+    hidden_input.value = transformedMarkdown;
+    const inputEvent = new Event('input', { 
+      bubbles: true, 
+    });
+    hidden_input.dispatchEvent(inputEvent);
+
+      // const transformedMarkdown = markdown
+      //   .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
+      //   .replace(/\[(.*?)\]\(.*?\)/g, '$1');
+      // hidden_input.value = transformedMarkdown;
+      // const inputEvent = new Event('input', { 
+      //   bubbles: true, composed: true
+      // });
+      // hidden_input.dispatchEvent(inputEvent);
     })
       ctx.update(editorViewOptionsCtx, (prev) => ({
         ...prev,
@@ -490,8 +500,10 @@ const createEditor = async (hidden_input, composer$) => {
 
 MilkdownHooks.Milkdown = {
   mounted() {
-    const hidden_input = document.querySelector('.editor_hidden_input');
-    const composer$ = this.el
+    const hidden_input = this.el.querySelector('#editor_hidden_input');
+    const composer$ = this.el.querySelector('#editor')
+    console.log(hidden_input)
+    console.log(composer$)
     createEditor(hidden_input, composer$)
   },
   updated() {
