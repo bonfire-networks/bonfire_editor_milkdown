@@ -388,7 +388,7 @@ const createEditor = async (hidden_input, composer$) => {
   const bold_btn = document.getElementById('bold_btn');
   const italic_btn = document.getElementById('italic_btn');
   // const quote_btn = document.getElementById('quote_btn');
-  const strike_btn = document.getElementById('strike_btn');
+  // const strike_btn = document.getElementById('strike_btn');
   // const table_btn = document.getElementById('table_btn');
 
 
@@ -436,15 +436,15 @@ const createEditor = async (hidden_input, composer$) => {
   //   });
   // })
 
-  strike_btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    editor.action((ctx) => {
-      const commandManager = ctx.get(commandsCtx);
-      const view = ctx.get(editorViewCtx);
-      commandManager.call(toggleStrikethroughCommand.key);
-      view.focus()
-    });
-  })
+  // strike_btn.addEventListener('click', (e) => {
+  //   e.preventDefault();
+  //   editor.action((ctx) => {
+  //     const commandManager = ctx.get(commandsCtx);
+  //     const view = ctx.get(editorViewCtx);
+  //     commandManager.call(toggleStrikethroughCommand.key);
+  //     view.focus()
+  //   });
+  // })
 
   // table_btn.addEventListener('click', (e) => {
   //   e.preventDefault();
