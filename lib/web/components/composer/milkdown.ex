@@ -1,7 +1,7 @@
 defmodule Bonfire.Editor.Milkdown do
   use Bonfire.UI.Common.Web, :stateless_component
 
-  alias Surface.Components.Form.TextInput
+  # alias Surface.Components.Form.TextInput
 
   # use Bonfire.UI.Common.Web, :stateless_component
   # use Bonfire.Common.Utils

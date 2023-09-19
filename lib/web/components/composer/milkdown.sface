@@ -1,5 +1,5 @@
 <div
-  class="h-full flex-1 grow"
+  class="h-full flex-1 grow min-h-[250px] overflow-y-auto md:max-h-[450px]"
   phx-hook="Milkdown"
   phx-update="ignore"
   id="editor_milkdown_container"
