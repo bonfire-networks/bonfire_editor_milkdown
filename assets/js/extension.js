@@ -1,6 +1,6 @@
 import { defaultValueCtx, editorViewOptionsCtx, Editor, editorViewCtx, commandsCtx, rootCtx } from '@milkdown/core';
 import { replaceAll, insert} from '@milkdown/utils';
-import { commonmark, wrapInHeadingCommand, wrapInBlockquoteCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
+import { commonmark, wrapInHeadingCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
 import {
   gfm,
   toggleStrikethroughCommand,
@@ -54,7 +54,6 @@ function mentionsPluginView(view) {
       // Display the menu if the last character is `@` followed by 2 chars.
       if (mentions) {
         // get the characters that follows the `@` in currentText
-        console.log("qui")
         const text = mentions[1].split('@').pop()
 
         return getFeedItems(text, '@').then(res => {
@@ -81,13 +80,9 @@ function mentionsPluginView(view) {
 
   return {
     update: (updatedView, prevState) => {
-      console.log("UPDATE")
-      console.log(updatedView)
-      console.log(prevState)
       provider.update(updatedView, prevState);
     },
     destroy: () => {
-      console.log("destroy")
       provider.destroy();
       content.remove();
     }
@@ -299,7 +294,7 @@ const emojisSlash = slashFactory('emojis-slash');
 // const slash = slashFactory('slash');
 let isUpdatingMarkdown = false;
 
-const createEditor = async (hidden_input, composer$) => {
+const createEditor = async (_this, hidden_input, composer$) => {
   const editor = await Editor
   .make()
   .config(ctx => {
@@ -387,6 +382,7 @@ const createEditor = async (hidden_input, composer$) => {
   const heading_btn = document.getElementById('heading_btn');
   const bold_btn = document.getElementById('bold_btn');
   const italic_btn = document.getElementById('italic_btn');
+
   // const quote_btn = document.getElementById('quote_btn');
   // const strike_btn = document.getElementById('strike_btn');
   // const table_btn = document.getElementById('table_btn');
@@ -395,6 +391,13 @@ const createEditor = async (hidden_input, composer$) => {
   submit_btn.addEventListener('click', (e) => {
     editor.action(replaceAll(''))
   })
+
+  _this.handleEvent("mention_suggestions", data => {
+    console.log("mention_suggestions")
+    console.log(data)
+  })
+
+
 
   heading_btn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -502,9 +505,16 @@ MilkdownHooks.Milkdown = {
   mounted() {
     const hidden_input = this.el.querySelector('#editor_hidden_input');
     const composer$ = this.el.querySelector('#editor')
+    const suggestion = this.el.dataset.suggestion
+    console.log(suggestion)
+
     console.log(hidden_input)
     console.log(composer$)
-    createEditor(hidden_input, composer$)
+    createEditor(this, hidden_input, composer$)
+    this.handleEvent("mention_suggestions", data => {
+      console.log("mention_suggestions")
+      console.log(data)
+    })
   },
   updated() {
     console.log("updated")
