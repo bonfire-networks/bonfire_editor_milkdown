@@ -392,9 +392,21 @@ const createEditor = async (_this, hidden_input, composer$) => {
     editor.action(replaceAll(''))
   })
 
-  _this.handleEvent("mention_suggestions", data => {
-    console.log("mention_suggestions")
-    console.log(data)
+  _this.handleEvent("mention_suggestions", ({text}) => {
+    // replace the current text with the text from the event
+    editor.action(replaceAll(''))
+    if (text != null) {
+      editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        view.dispatch(
+          view.state.tr
+            .insertText(text + ' ')
+        );
+        view.focus()
+      }) 
+    }
+
+
   })
 
 
