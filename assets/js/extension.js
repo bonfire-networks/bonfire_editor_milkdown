@@ -118,13 +118,11 @@ function emojisPluginView() {
         const index = gemoji.findIndex((emoji) => {
           return emoji.names.some((name) => name.includes(text));
         });
-        console.log(index)
         list = ''
         if (index > 0) {
           // Add max 4 items to the menu
           gemoji
           .filter((emoji) => {
-            console.log(emoji)
             return emoji.names.some((name) => name.includes(text));
           })
           .slice(0, 6)
