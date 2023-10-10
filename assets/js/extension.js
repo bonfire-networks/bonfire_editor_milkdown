@@ -1,10 +1,7 @@
 import { defaultValueCtx, editorViewOptionsCtx, Editor, editorViewCtx, commandsCtx, rootCtx } from '@milkdown/core';
 import { replaceAll, insert} from '@milkdown/utils';
 import { commonmark, wrapInHeadingCommand, toggleStrongCommand, toggleEmphasisCommand} from '@milkdown/preset-commonmark';
-import {
-  gfm,
-  toggleStrikethroughCommand,
-} from "@milkdown/preset-gfm";
+import {gfm} from "@milkdown/preset-gfm";
 import { emoji } from '@milkdown/plugin-emoji';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { SlashProvider } from '@milkdown/plugin-slash'
@@ -316,6 +313,7 @@ const createEditor = async (_this, hidden_input, composer$) => {
       bubbles: true, 
     });
     hidden_input.dispatchEvent(inputEvent);
+    // Set initial value of hidden input
 
       // const transformedMarkdown = markdown
       //   .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
@@ -513,21 +511,9 @@ const createEditor = async (_this, hidden_input, composer$) => {
 
 MilkdownHooks.Milkdown = {
   mounted() {
-    const hidden_input = this.el.querySelector('#editor_hidden_input');
+    const hidden_input = document.getElementById('editor_hidden_input');
     const composer$ = this.el.querySelector('#editor')
-    const suggestion = this.el.dataset.suggestion
-    console.log(suggestion)
-
-    console.log(hidden_input)
-    console.log(composer$)
     createEditor(this, hidden_input, composer$)
-    this.handleEvent("mention_suggestions", data => {
-      console.log("mention_suggestions")
-      console.log(data)
-    })
-  },
-  updated() {
-    console.log("updated")
   }
 }
 

@@ -1,5 +1,5 @@
-<div>{e(@smart_input_opts, :text_suggestion, nil)}</div>
 <div
+  phx-update="ignore"
   class="h-full flex-1 grow min-h-[250px] overflow-y-auto max-h-[380px] md:max-h-[450px]"
   phx-hook="Milkdown"
   data-suggestion={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
