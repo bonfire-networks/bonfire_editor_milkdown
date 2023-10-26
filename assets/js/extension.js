@@ -303,8 +303,7 @@ const createEditor = async (_this, hidden_input, composer$) => {
       view: emojisPluginView
     })
     ctx.get(listenerCtx)
-    .markdownUpdated((ctx, markdown, prevMarkdown) => {  
-
+    .markdownUpdated((ctx, markdown, prevMarkdown) => {
       const transformedMarkdown = markdown
       .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
       .replace(/\[(.*?)\]\(.*?\)/g, '$1');
@@ -313,16 +312,6 @@ const createEditor = async (_this, hidden_input, composer$) => {
       bubbles: true, 
     });
     hidden_input.dispatchEvent(inputEvent);
-    // Set initial value of hidden input
-
-      // const transformedMarkdown = markdown
-      //   .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
-      //   .replace(/\[(.*?)\]\(.*?\)/g, '$1');
-      // hidden_input.value = transformedMarkdown;
-      // const inputEvent = new Event('input', { 
-      //   bubbles: true, composed: true
-      // });
-      // hidden_input.dispatchEvent(inputEvent);
     })
       ctx.update(editorViewOptionsCtx, (prev) => ({
         ...prev,
@@ -382,11 +371,13 @@ const createEditor = async (_this, hidden_input, composer$) => {
   // const quote_btn = document.getElementById('quote_btn');
   // const strike_btn = document.getElementById('strike_btn');
   // const table_btn = document.getElementById('table_btn');
-
-
-  submit_btn.addEventListener('click', (e) => {
+  _this.handleEvent("smart_input:reset", ({text}) => {
     editor.action(replaceAll(''))
   })
+  
+  // submit_btn.addEventListener('click', (e) => {
+  //   editor.action(replaceAll(''))
+  // })
 
   _this.handleEvent("mention_suggestions", ({text}) => {
     // replace the current text with the text from the event
