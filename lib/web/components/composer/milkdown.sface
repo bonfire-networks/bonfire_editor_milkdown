@@ -1,5 +1,3 @@
-
-
 <div
   class="h-full flex-1 grow min-h-[250px] overflow-y-auto max-h-[380px] md:max-h-[450px]"
   phx-hook="Milkdown"
@@ -7,7 +5,7 @@
   data-suggestion={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
   id="editor_milkdown_container"
 >
-              <input name="post[post_content][html_body]" type="hidden" id="editor_hidden_input" />
+  <input name="post[post_content][html_body]" type="hidden" id="editor_hidden_input">
 
   <div id="editor" class="w-full flex flex-1 h-full">
   </div>
