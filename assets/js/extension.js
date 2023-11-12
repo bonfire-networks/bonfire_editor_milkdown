@@ -487,10 +487,14 @@ const createEditor = async (_this, hidden_input, composer$) => {
         const view = ctx.get(editorViewCtx);
         const { state } = view;
         const { selection } = state;
+        
+        // Calculate the start position for deletion
+        const startPos = selection.from - text.length -1;
+
         view.dispatch(
           view.state.tr
-            .delete(selection.from - text.length - 1, selection.from)
-            .insertText(mention + ' ')
+            .delete(startPos, selection.from)
+            .insertText(`${mention} ` + `\u200B ` ) // add a space character after the mention variable
         );
         view.focus()
       })
