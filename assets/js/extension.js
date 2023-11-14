@@ -308,6 +308,7 @@ const createEditor = async (_this, hidden_input, composer$) => {
       .replace(/!\[(.*?)\]\(.*?\)/g, '$1')
       .replace(/\[(.*?)\]\(.*?\)/g, '$1');
     hidden_input.value = transformedMarkdown;
+    console.log(hidden_input.value);
     const inputEvent = new Event('input', { 
       bubbles: true, 
     });
