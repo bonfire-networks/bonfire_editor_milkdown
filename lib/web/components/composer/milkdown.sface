@@ -1,6 +1,6 @@
 <div
   class="h-full flex-1 grow md:min-h-[250px] overflow-y-auto min-h-[calc(100vh_-_78px)] max-h-[calc(100vh_-_78px)] md:max-h-[450px]"
-  phx-hook="Milkdown"
+  :hook
   phx-update="ignore"
   data-suggestion={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
   id="editor_milkdown_container"
