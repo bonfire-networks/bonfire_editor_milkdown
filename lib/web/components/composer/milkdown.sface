@@ -1,4 +1,5 @@
 <div
+  data-rendered={@showing_within}
   class="h-full flex-1 grow md:min-h-[250px] overflow-y-auto min-h-[calc(100vh_-_78px)] max-h-[calc(100vh_-_78px)] md:max-h-[450px]"
   :hook
   phx-update="ignore"
