@@ -7,7 +7,7 @@
   id="editor_milkdown_container"
 >
   <input
-    name="post[post_content][html_body]"
+    name={@field_name}
     type="hidden"
     id="editor_hidden_input"
     value={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
