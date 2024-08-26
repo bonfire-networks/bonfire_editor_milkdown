@@ -6,6 +6,7 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@milkdown/kit": "7.5.0",
+    "@milkdown/plugin-emoji": "7.5.0",
     "@milkdown/theme-nord": "7.5.0",
     "@milkdown/utils": "7.5.0",
     "@picmo/popup-picker": "^5.8.1",
