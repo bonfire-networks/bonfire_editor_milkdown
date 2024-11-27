@@ -5,6 +5,8 @@
 	"repository": {},
 	"license": "AGPL-3.0",
 	"dependencies": {
+		"@github/markdown-toolbar-element": "^2.2.3",
+		"@github/paste-markdown": "^1.5.3",
 		"@milkdown/kit": "7.5.0",
 		"@milkdown/plugin-emoji": "7.5.0",
 		"@milkdown/theme-nord": "7.5.0",
