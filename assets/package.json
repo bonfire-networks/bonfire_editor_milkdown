@@ -16,6 +16,9 @@
 		"milkdown-plugin-placeholder": "0.2.0",
 		"picmo": "^5.8.1"
 	},
+	"resolutions": {
+        "prosemirror-model": "1.9.1"
+    },
 	"devDependencies": {
 		"typescript": "4.7.3",
 		"vite": "3.2.3"
