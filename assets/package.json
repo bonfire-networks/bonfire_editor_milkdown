@@ -11,10 +11,8 @@
 		"@milkdown/plugin-emoji": "7.5.0",
 		"@milkdown/theme-nord": "7.5.0",
 		"@milkdown/utils": "7.5.0",
-		"@picmo/popup-picker": "^5.8.1",
 		"gemoji": "8.1.0",
-		"milkdown-plugin-placeholder": "0.2.0",
-		"picmo": "^5.8.1"
+		"milkdown-plugin-placeholder": "0.2.0"
 	},
 	"devDependencies": {
 		"typescript": "4.7.3",
