@@ -1,21 +1,31 @@
 {
 	"name": "bonfire-milkdown",
 	"version": "0.1.0",
-	"description": "",
+	"description": "WYSIWYG Markdown editor for Bonfire using Milkdown",
 	"repository": {},
 	"license": "AGPL-3.0",
 	"dependencies": {
 		"@github/markdown-toolbar-element": "^2.2.3",
 		"@github/paste-markdown": "^1.5.3",
-		"@milkdown/kit": "7.5.0",
-		"@milkdown/plugin-emoji": "7.5.0",
-		"@milkdown/theme-nord": "7.5.0",
-		"@milkdown/utils": "7.5.0",
+		"@milkdown/core": "7.6.4",
+		"@milkdown/ctx": "7.6.4",
+		"@milkdown/kit": "7.6.4",
+		"@milkdown/plugin-clipboard": "7.6.4",
+		"@milkdown/plugin-emoji": "7.6.4",
+		"@milkdown/plugin-history": "7.6.4",
+		"@milkdown/plugin-listener": "7.6.4",
+		"@milkdown/plugin-slash": "7.6.4",
+		"@milkdown/preset-commonmark": "7.6.4",
+		"@milkdown/preset-gfm": "7.6.4",
+		"@milkdown/prose": "7.6.4",
+		"@milkdown/theme-nord": "7.6.4",
+		"@milkdown/transformer": "7.6.4",
+		"@milkdown/utils": "7.6.4",
 		"gemoji": "8.1.0",
-		"milkdown-plugin-placeholder": "0.2.0"
+		"emoji-picker-element": "^1.21.0"
 	},
 	"devDependencies": {
-		"typescript": "4.7.3",
+		"typescript": "4.9.5",
 		"vite": "3.2.3"
 	}
 }
