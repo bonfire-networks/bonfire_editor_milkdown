@@ -1,6 +1,4 @@
 defmodule Bonfire.Editor.Milkdown do
-  @moduledoc "./README.md" |> File.stream!() |> Enum.drop(1) |> Enum.join()
-
   use Bonfire.UI.Common.Web, :stateless_component
 
   # use Bonfire.UI.Common.Web, :stateless_component
