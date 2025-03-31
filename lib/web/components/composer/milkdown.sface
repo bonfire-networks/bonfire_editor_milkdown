@@ -9,9 +9,7 @@
   role="textbox"
   aria-multiline="true"
 >
-  <label
-    for="editor_hidden_input"
-    class="sr-only">{l "Content"}</label>
+  <label for="editor_hidden_input" class="sr-only">{l("Content")}</label>
   <input
     name={@field_name}
     type="hidden"
