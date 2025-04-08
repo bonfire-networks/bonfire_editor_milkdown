@@ -9,15 +9,15 @@
   role="textbox"
   aria-multiline="true"
 >
-  <label for="editor_hidden_input" class="sr-only">{l("Content")}</label>
+<span class="sr-only">
+  <label for="editor_hidden_input">{l("Content")}</label>
   <input
     name={@field_name}
-    type="hidden"
     id="editor_hidden_input"
     value={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
     aria-hidden="true"
   />
-
+</span>
   <div
     id="editor"
     class="w-full flex flex-1 h-full prose-p:first-of-type:!mt-0 prose-p:first-of-type:!mb-0 markdown-editor"
