@@ -21,8 +21,8 @@
 		"@milkdown/theme-nord": "7.6.4",
 		"@milkdown/transformer": "7.6.4",
 		"@milkdown/utils": "7.6.4",
-		"gemoji": "8.1.0",
-		"emoji-picker-element": "^1.21.0"
+		"emoji-picker-element": "^1.21.0",
+		"gemoji": "8.1.0"
 	},
 	"devDependencies": {
 		"typescript": "4.9.5",
