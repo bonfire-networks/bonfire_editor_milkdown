@@ -14,6 +14,7 @@
     <input
       name={@field_name}
       id="editor_hidden_input"
+      type="hidden"
       value={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
       aria-hidden="true"
     />
