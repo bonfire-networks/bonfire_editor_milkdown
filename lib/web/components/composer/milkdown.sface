@@ -22,7 +22,7 @@
   </span>
   <div
     id="editor"
-    class="w-full flex flex-1 h-full prose-p:first-of-type:!mt-0 prose-p:first-of-type:!mb-0 markdown-editor"
+    class="w-full flex flex-1 h-full markdown-editor"
     data-placeholder="Write something..."
   >
   </div>
