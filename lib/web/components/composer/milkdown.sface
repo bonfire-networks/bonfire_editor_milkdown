@@ -1,7 +1,7 @@
 <div
   phx-update="ignore"
   data-rendered={@showing_within}
-  class="max-h-[250px] h-full flex-1 grow min-h-[250px] overflow-y-auto md:max-h-[450px]"
+  class="max-h-[250px] h-full flex-1 grow min-h-[250px] overflow-y-auto"
   :hook
   data-suggestion={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
   data-disable-mentions={e(@smart_input_opts, :create_object_type, nil) == "message" and "true"}
