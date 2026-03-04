@@ -9,7 +9,8 @@
   padding: 1rem;
   background-color: var(--color-background, #ffffff);
   transition: border-color 0.15s ease-in-out;
-  min-height: 250px;
+  flex: 1;
+  min-height: 0;
 }
 
 .dark .markdown-editor {
