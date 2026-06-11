@@ -602,12 +602,6 @@ async function initEditor(hook, hiddenInput, container) {
   console.log("Milkdown editor initialized successfully");
 }
 
-// === Public API used by the thin `milkdown.hooks.js` shim ===
-
-// Equivalent to the previous hook `mounted()` editor-init half: sets up instance
-// state and initializes the editor. Resolves once the editor exists. Server-event
-// handlers are registered synchronously by the shim and dispatched here via
-// `handleServerEvent` (events arriving before this resolves are queued by the shim).
 export async function mountEditor(hook) {
   // Initialize instance state
   hook._mentionDropdownState = { skipNext: false };
@@ -623,6 +617,9 @@ export async function mountEditor(hook) {
   if (!hiddenInput.value && hook.el.dataset.suggestion) {
     hiddenInput.value = hook.el.dataset.suggestion;
   }
+
+  const draft = window.Bonfire?.getComposerDraft?.(hiddenInput);
+  if (draft) hiddenInput.value = draft;
 
   await initEditor(hook, hiddenInput, container);
 }

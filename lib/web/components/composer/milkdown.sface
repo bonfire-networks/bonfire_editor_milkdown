@@ -19,6 +19,7 @@
       type="hidden"
       value={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
       aria-hidden="true"
+      data-persist-draft
     />
   </span>
   <div
