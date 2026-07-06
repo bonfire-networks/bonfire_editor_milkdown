@@ -621,6 +621,12 @@ export async function mountEditor(hook) {
   const draft = window.Bonfire?.getComposerDraft?.(hiddenInput);
   if (draft) hiddenInput.value = draft;
 
+  // Prefilled content bypasses the editor's update listener — notify LiveView so
+  // validate runs (else the submit button stays disabled until the user edits).
+  if (hiddenInput.value) {
+    hiddenInput.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
   await initEditor(hook, hiddenInput, container);
 }
 
