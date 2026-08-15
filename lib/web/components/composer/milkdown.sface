@@ -3,7 +3,7 @@
   data-rendered={@showing_within}
   class="h-full flex-1 grow min-h-0 overflow-y-auto"
   :hook
-  data-editor-bundle={Bonfire.Common.URIs.static_path("/assets/milkdown_editor.js")}
+  data-editor-bundle={Bonfire.Common.URIs.versioned_static_path("/assets/milkdown_editor.js")}
   data-suggestion={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
   data-disable-mentions={e(@smart_input_opts, :create_object_type, nil) == "message" and "true"}
   id="editor_milkdown_container"
