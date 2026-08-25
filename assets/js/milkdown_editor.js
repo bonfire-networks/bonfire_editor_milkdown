@@ -220,7 +220,7 @@ function createMentionItem(item, matchInfo) {
   button.dataset.mention = item.id || '';
   button.dataset.from = matchInfo?.from ?? '';
   button.dataset.matchLength = matchInfo?.fullMatchLength ?? '';
-  button.className = 'mention_btn rounded-none w-full flex items-center';
+  button.className = 'mention_btn rounded-none w-full flex items-center p-0';
 
   const wrapper = document.createElement('div');
   wrapper.className = 'flex items-center gap-3 w-full pointer-events-none';
@@ -265,7 +265,7 @@ function createMentionsPluginView(hookInstance) {
     // Create a simple container
     const content = document.createElement("ul");
     content.tabIndex = 1;
-    content.className = "milkdown-menu menu z-[9999] shadow-sm bg-base-100 border border-base-content/10 w-72 absolute rounded-xl top-0 left-0 hidden";
+    content.className = "milkdown-menu menu z-[9999] shadow-sm bg-base-100 border border-secondary w-72 absolute rounded-xl top-0 left-0 hidden";
 
     // Event delegation: single click handler on container (fixes memory leak)
     // Position data is stored per-button to handle race conditions
