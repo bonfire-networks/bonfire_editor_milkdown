@@ -134,6 +134,8 @@ function serializeMarkdownForSubmit(ctx, doc) {
 
   markdownContent = markdownContent.replace(/ /g, ' ');
   markdownContent = markdownContent.replace(/​/g, '');
+  markdownContent = markdownContent.replace(/(^|\n)[ \t]*\\[ \t]*(?=\r?\n)/g, '$1');
+  markdownContent = markdownContent.replace(/\\[ \t]*\n(?=[ \t]*\r?\n)/g, '\n');
   markdownContent = markdownContent.replace(
     /(https?:\/\/[^\s)\]]+)/g,
     (url) => url.replace(/\\([&_*~`#=?])/g, '$1')
