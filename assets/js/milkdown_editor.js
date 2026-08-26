@@ -1,12 +1,6 @@
-// Heavy Milkdown editor implementation, built as a SEPARATE esbuild ESM bundle
-// (see `build.milkdown` in bonfire_ui_common/assets/package.json) and loaded
-// on demand by the thin `milkdown.hooks.js` shim via dynamic `import()`.
-//
-// Keeping all of `@milkdown/*` + ProseMirror + `emoji-picker-element` out of the
-// main bundle (~570kb) and only fetching it when the composer actually mounts.
-//
-// These functions operate on the LiveView hook instance (`hook` === `this` in the
-// shim), which holds the editor + per-instance state, exactly as before.
+// Heavy Milkdown editor implementation, built as a SEPARATE esbuild ESM bundle (see `build.milkdown` in bonfire_ui_common/assets/package.json) and loaded on demand by the thin `milkdown.hooks.js` shim via dynamic `import()`.
+// Keeping all of `@milkdown/*` + ProseMirror + `emoji-picker-element` out of the main bundle (~570kb) and only fetching it when the composer actually mounts.
+// These functions operate on the LiveView hook instance (`hook` === `this` in the shim), which holds the editor + per-instance state, exactly as before.
 
 import {
   defaultValueCtx,
@@ -33,11 +27,7 @@ import {
 } from "@milkdown/preset-commonmark";
 import { InputRule } from "@milkdown/prose/inputrules";
 import { DOMParser, DOMSerializer } from "@milkdown/prose/model";
-// NOTE: @milkdown/plugin-emoji intentionally dropped — it pulled in
-// emojilib/twemoji/emoji-regex (~240kb) just for inline `:shortcode:` → emoji
-// conversion, while the composer already provides emoji entry via the
-// emoji-picker-element button (see initEmojiPicker below). Re-add it here and in
-// the `.use(...)` chain if inline shortcode conversion is wanted back.
+// NOTE: @milkdown/plugin-emoji intentionally dropped, it pulled in emojilib/twemoji/emoji-regex (~240kb) just for inline `:shortcode:` → emoji conversion, while the composer already provides emoji entry via the emoji-picker-element button (see initEmojiPicker below). Re-add it here and in the `.use(...)` chain if inline shortcode conversion is wanted back.
 import {
   listener,
   listenerCtx
@@ -132,19 +122,33 @@ function serializeMarkdownForSubmit(ctx, doc) {
   const serializer = ctx.get(serializerCtx);
   let markdownContent = serializer(doc);
 
+  // ProseMirror emits NBSP (U+00A0) for leading/trailing spaces so they stay visible while editing. Must run BEFORE the hardBreak rules below, which only pad-match plain space/tab.
   markdownContent = markdownContent.replace(/ /g, ' ');
+
+  // Drop the zero-width space (U+200B) that handleMentionSuggestions appends as an anchor to keep a trailing space after a programmatically inserted mention.
   markdownContent = markdownContent.replace(/​/g, '');
+
+  // Milkdown serializes a `hardBreak` node as `\` + newline, so a visually-blank line (Shift+Enter) arrives as a backslash-only line. CommonMark reads those as line breaks rather than blank lines, collapsing the whole post into a single paragraph of `<br>`s (bonfire-app#2216, #2218). Turn a backslash-only line back into a blank line.
   markdownContent = markdownContent.replace(/(^|\n)[ \t]*\\[ \t]*(?=\r?\n)/g, '$1');
+
+  // ...and drop a hard break sitting directly before a blank line, which would otherwise render as a literal `\` at the end of the paragraph.
   markdownContent = markdownContent.replace(/\\[ \t]*\n(?=[ \t]*\r?\n)/g, '\n');
+
+  // The CommonMark serializer escapes markdown-significant chars everywhere, including inside URLs, where it corrupts query strings (`?a=1&b=2` serializes as `?a\=1\&b\=2`). Unescape them within http(s) URLs only.
+  // A bare `)` or `]` ends the URL because it's the closing delimiter of `[text](url)` / `[text][ref]`, but an escaped one is part of the URL itself (eg. a Wikipedia `..._(planet)` link), so `\\[^\s]` consumes escape pairs whole rather than stopping on them.
   markdownContent = markdownContent.replace(
-    /(https?:\/\/[^\s)\]]+)/g,
-    (url) => url.replace(/\\([&_*~`#=?])/g, '$1')
+    /https?:\/\/(?:\\[^\s]|[^\s()[\]\\])+/g,
+    (url) => url.replace(/\\([&_*~`#=?()[\]])/g, '$1')
   );
+
+  // Same escaping problem for underscores in @mentions: `@foo\_bar` has to post as `@foo_bar` or the mention won't resolve.
   markdownContent = markdownContent.replace(/@[a-zA-Z0-9_\\-]*\\\_[a-zA-Z0-9_\\-]*/g, (match) => {
     return match.replace(/\\_/g, '_');
   });
+
+  // And again for hashtags, which the serializer escapes as `\#tag` because `#` opens an ATX heading at line start. The `m` flag makes `^` match after every newline, so this covers every line.
+  // KNOWN GAP: only fires at line start (`hello \#tag` stays escaped), and `[\wÀ-ɏḀ-ỿ]` covers the Latin extensions but not Cyrillic/Greek/CJK.
   markdownContent = markdownContent.replace(/^\\#([\wÀ-ɏḀ-ỿ]+)/gm, '#$1');
-  markdownContent = markdownContent.replace(/\n\\#([\wÀ-ɏḀ-ỿ]+)/g, '\n#$1');
 
   return markdownContent;
 }
@@ -495,15 +499,12 @@ function setupLazyEmojiPicker(editor, hookInstance) {
   console.log('Emoji picker lazy initialization setup complete');
 }
 
-// Initialize the editor on the given hook instance. Resolves once the editor
-// actually exists, so the caller (the shim) can safely flush queued server events.
+// Initialize the editor on the given hook instance. Resolves once the editor actually exists, so the caller (the shim) can safely flush queued server events.
 async function initEditor(hook, hiddenInput, container) {
   // Create simple slash factory for mentions
   const mentionSlash = slashFactory("mention-slash");
 
-  // Defer one tick so the container is settled in the DOM before ProseMirror
-  // mounts. Awaited by mountEditor so the hook only flips to "ready" once the
-  // editor exists, letting the shim safely flush any queued server events.
+  // Defer one tick so the container is settled in the DOM before ProseMirror mounts. Awaited by mountEditor so the hook only flips to "ready" once the editor exists, letting the shim safely flush any queued server events.
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   // Create and configure the editor
@@ -565,10 +566,7 @@ async function initEditor(hook, hiddenInput, container) {
     .use(placeholder)   // Placeholder support
     .create();
 
-  // The composer may have been torn down while the editor was being created
-  // (async create racing a fast unmount). If so, destroy it immediately rather
-  // than wiring listeners/emoji-picker onto an orphan that destroy() already
-  // skipped (it ran when hook.editor was still null).
+  // The composer may have been torn down while the editor was being created (async create racing a fast unmount). If so, destroy it immediately rather than wiring listeners/emoji-picker onto an orphan that destroy() already skipped (it ran when hook.editor was still null).
   if (hook._destroyed) {
     hook.editor.destroy();
     hook.editor = null;
@@ -623,8 +621,7 @@ export async function mountEditor(hook) {
   const draft = window.Bonfire?.getComposerDraft?.(hiddenInput);
   if (draft) hiddenInput.value = draft;
 
-  // Prefilled content bypasses the editor's update listener — notify LiveView so
-  // validate runs (else the submit button stays disabled until the user edits).
+  // Prefilled content bypasses the editor's update listener — notify LiveView so validate runs (else the submit button stays disabled until the user edits).
   if (hiddenInput.value) {
     hiddenInput.dispatchEvent(new Event("input", { bubbles: true }));
   }
@@ -632,9 +629,7 @@ export async function mountEditor(hook) {
   await initEditor(hook, hiddenInput, container);
 }
 
-// Dispatch a server-pushed event to its handler. Called by the shim once the
-// editor is ready; events that arrive during the bundle download are queued by
-// the shim and flushed through here, so none are dropped.
+// Dispatch a server-pushed event to its handler. Called by the shim once the editor is ready; events that arrive during the bundle download are queued by the shim and flushed through here, so none are dropped.
 export function handleServerEvent(hook, name, payload) {
   switch (name) {
     case "mention_suggestions":
@@ -689,8 +684,7 @@ function handleMentionSuggestions(hook, payload) {
       const view = ctx.get(editorViewCtx);
       const { state } = view;
 
-      // ProseMirror normalizes trailing whitespace in text nodes, so we append
-      // a zero-width space to preserve the trailing space for user typing.
+      // ProseMirror normalizes trailing whitespace in text nodes, so we append a zero-width space to preserve the trailing space for user typing.
       // The zero-width space acts as an anchor and is removed when user types.
       const textWithZWS = textWithSpace + '​';
 
