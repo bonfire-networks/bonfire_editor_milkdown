@@ -30,7 +30,7 @@
 		"typescript": "4.9.5",
 		"vite": "3.2.3"
 	},
-	"packageManager": "yarn@4.14.1",
+	"packageManager": "yarn@4.18.0+sha512.fcb8716fe7cd0eece141ffc18b92193a9df9204c1ba83189c288835223fc0bbe64af473bab0d5e9927a7daeb5caf2bb07eb2787cc9338ca040ea125f2a1f2f7e",
 	"scripts": {
 		"build.ext": "npx esbuild ./js/milkdown_editor.js --target=es2020 --bundle --format=esm --minify --drop:console --drop:debugger --outfile=../../../priv/static/assets/milkdown_editor.js",
 		"watch.ext": "NODE_ENV=development npx esbuild ./js/milkdown_editor.js --target=es2020 --bundle --format=esm --sourcemap --outfile=../../../priv/static/assets/milkdown_editor.js --watch"
