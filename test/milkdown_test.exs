@@ -5,7 +5,10 @@ defmodule Bonfire.Editor.MilkdownTest do
   test "disables mentions for either representation of a message composer" do
     for type <- [:message, "message"] do
       {:ok, document} = render_editor(%{create_object_type: type}) |> Floki.parse_document()
-      assert Floki.attribute(document, "#editor_milkdown_container", "data-disable-mentions") == ["true"]
+
+      assert Floki.attribute(document, "#editor_milkdown_container", "data-disable-mentions") == [
+               "true"
+             ]
     end
   end
 
