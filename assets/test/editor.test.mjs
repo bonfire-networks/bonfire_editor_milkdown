@@ -228,6 +228,33 @@ test('mention clicks replace the current match without interfering with submit s
   assert.equal(await page.evaluate(() => editorTest.view().state.doc.textContent), '@al');
 });
 
+test('previous mention results stay visible and usable while the next query loads', async () => {
+  await openEditor();
+  await page.locator('.ProseMirror').fill('@al');
+  await page.waitForSelector('.milkdown-menu[data-show="true"]');
+  let release;
+  const held = new Promise(resolve => release = resolve);
+  await page.route('**/api/tag/**', async route => { await held; await route.fulfill({ json: [] }); });
+  const request = page.waitForRequest('**/api/tag/**');
+  await page.keyboard.type('i');
+  await request;
+  assert.equal(await page.locator('.milkdown-menu[data-show="true"] button').count(), 2);
+  await page.locator('.milkdown-menu button').first().click();
+  assert.equal(await page.evaluate(() => editorTest.view().state.doc.textContent), '@alice ');
+  release();
+  await page.waitForTimeout(250);
+  assert.equal(await page.locator('.milkdown-menu[data-show="true"]').count(), 0);
+});
+
+test('an empty response hides the previous mention results', async () => {
+  await openEditor();
+  await page.locator('.ProseMirror').fill('@al');
+  await page.waitForSelector('.milkdown-menu[data-show="true"]');
+  await page.route('**/api/tag/**', route => route.fulfill({ json: [] }));
+  await page.keyboard.type('z');
+  await page.waitForSelector('.milkdown-menu[data-show="false"]', { state: 'attached' });
+});
+
 test('stale autocomplete responses cannot reopen a dismissed menu', async () => {
   let release;
   const held = new Promise(resolve => release = resolve);

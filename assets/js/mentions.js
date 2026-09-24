@@ -46,7 +46,7 @@ function createMentionItem(item, index) {
 
 function createMentionMenu(view, hook) {
   const content = document.createElement('ul');
-  content.className = 'milkdown-menu menu z-50 shadow-sm bg-base-100 border border-secondary w-72 max-w-full absolute rounded-xl';
+  content.className = 'milkdown-menu menu flex-nowrap z-50 shadow-sm bg-base-100 border border-secondary w-72 max-w-full max-h-80 overflow-y-auto absolute rounded-xl';
   content.dataset.show = 'false';
 
   let items = [];
@@ -102,9 +102,11 @@ function createMentionMenu(view, hook) {
 
     cancelSearch();
     query = match.query;
-    displayedMatch = null;
-    items = [];
-    provider.hide();
+    // Keep the previous results on screen, retargeted to the current range, until the new ones arrive.
+    if (items.length) {
+      displayedMatch = match;
+      provider.update(view);
+    }
     const request = new AbortController();
     controller = request;
     timeout = setTimeout(async () => {
@@ -114,11 +116,13 @@ function createMentionMenu(view, hook) {
         const results = await response.json();
         const latest = getMatch();
         if (request.signal.aborted || !latest || latest.query !== match.query) return;
-        items = results.filter(item => typeof item.id === 'string' && item.id).slice(0, 4);
+        items = results.filter(item => typeof item.id === 'string' && item.id).slice(0, 8);
         displayedMatch = latest;
         content.replaceChildren(...items.map((item, index) => createMentionItem(item, index)));
         if (items.length) {
           provider.update(view);
+        } else {
+          provider.hide();
         }
       } catch (error) {
         if (!request.signal.aborted) {
@@ -126,7 +130,7 @@ function createMentionMenu(view, hook) {
           query = null;
         }
       }
-    }, 100);
+    }, match.query.includes('@') ? 500 : 200); // wait longer while a remote handle's domain is being typed
   };
   const handlePointerDown = event => {
     if (event.target.closest('button')) event.preventDefault();
