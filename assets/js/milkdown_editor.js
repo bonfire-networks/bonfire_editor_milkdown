@@ -161,6 +161,7 @@ async function initEditor(hook, hiddenInput, container) {
         attributes: {
           class: 'milkdown-editor relative mx-auto focus:outline-hidden h-full p-2 prose prose-bonfire break-normal max-w-none text-base-content prose-hr:!my-2 prose-br:hidden',
           spellcheck: 'false',
+          autocomplete: 'off',
         },
         handlePaste: (_view, event) => {
           const data = event.clipboardData;
