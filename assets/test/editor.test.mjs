@@ -160,6 +160,18 @@ test('serialization preserves backslashes, NBSP and zero-width spaces in code', 
   assert.equal(result.content[1].content[0].text, 'https://example.org/a\\_b');
 });
 
+test('code is submitted verbatim, with quotes, ampersands and angle brackets unescaped', async () => {
+  await openEditor();
+  const code = 'IO.puts("Hello world") && a < b > c &amp;';
+  const json = doc({ type: 'code_block', attrs: { language: 'elixir' }, content: [text(code)] }, paragraph({ ...text(code), marks: [{ type: 'inlineCode' }] }));
+  const markdown = await page.evaluate(json => {
+    editorTest.setDoc(json, 1);
+    document.querySelector('form').requestSubmit();
+    return submitted;
+  }, json);
+  assert.equal(markdown, '```elixir\n' + code + '\n```\n\n`' + code + '`\n');
+});
+
 test('social tokens stay usable and blank hard-break lines become paragraphs', async () => {
   await openEditor();
   const result = await page.evaluate(json => {
