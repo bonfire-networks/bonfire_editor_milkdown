@@ -226,6 +226,28 @@ test('mentions reject selected text, email suffixes, code and stale ranges', asy
   assert.deepEqual(result, [null, null, null, null]);
 });
 
+// usernames can have letters and digits in any script, and hosts can be IDNs
+test('mentions match non-ASCII and dotted handles', async () => {
+  await openEditor();
+  const result = await page.evaluate(() => {
+    const make = value => ({type:'doc',content:[{type:'paragraph',content:[{type:'text',text:value}]}]});
+    return ['@josé', '@你好', '@first.last', '@josé@bücher.local', '@你好@你好.local'].map(value => {
+      editorTest.setDoc(make(value), value.length + 1);
+      return editorTest.getMentionMatchInfo(editorTest.view().state)?.query;
+    });
+  });
+  assert.deepEqual(result, ['josé', '你好', 'first.last', 'josé@bücher.local', '你好@你好.local']);
+});
+
+test('underscores in non-ASCII mentions are not escaped on submit', async () => {
+  await openEditor();
+  const markdown = await page.evaluate(() => {
+    editorTest.setDoc({type:'doc',content:[{type:'paragraph',content:[{type:'text',text:'@你好_x and @josé_y'}]}]}, 1);
+    return editorTest.serialize();
+  });
+  assert.equal(markdown, '@你好_x and @josé_y\n');
+});
+
 test('mention clicks replace the current match without interfering with submit shortcuts', async () => {
   await openEditor();
   await page.locator('.ProseMirror').fill('@al');

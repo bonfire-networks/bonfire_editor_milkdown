@@ -10,7 +10,7 @@ export function serializeSocialText(node, parent, state, info) {
   // Query separators are literal; formatting delimiters and character references still need escaping.
   text = text.replace(/https?:\/\/(?:\\[^\s]|[^\s()[\]\\])+/g,
     url => url.replace(/(?<!\\)\\&(?=[\w%-]+=)/g, '&'));
-  text = text.replace(/@[a-zA-Z0-9_\\.-]+/g, mention => mention.replace(/(?<!\\)\\_/g, '_'));
+  text = text.replace(/@[\p{L}\p{M}\p{N}_\\.-]+/gu, mention => mention.replace(/(?<!\\)\\_/g, '_'));
   return text.replace(/(?<!\\)\\#(?=[\p{L}\p{N}_])/gu, '#');
 }
 

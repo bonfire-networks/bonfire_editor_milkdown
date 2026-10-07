@@ -8,7 +8,8 @@ export function getMentionMatchInfo(state) {
   if (!(selection instanceof TextSelection) || !empty || !$from.parent.isTextblock || $from.parent.type.spec.code || $from.marks().some(mark => mark.type.spec.code)) return null;
 
   const text = $from.parent.textBetween(0, $from.parentOffset, undefined, '\uFFFC');
-  const match = text.match(/(?:^|[\s(])(@([\w.-]+(?:@[\w.-]*)?))$/);
+  // letters and digits in any script (e.g. josé or 你好), and IDN hosts
+  const match = text.match(/(?:^|[\s(])(@([\p{L}\p{M}\p{N}_.-]+(?:@[\p{L}\p{M}\p{N}_.-]*)?))$/u);
   if (!match || (match[2].length < 2 && !match[2].includes('@'))) return null;
   return { from: from - match[1].length, to: from, query: match[2] };
 }
