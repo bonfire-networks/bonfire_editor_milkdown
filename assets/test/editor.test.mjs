@@ -239,6 +239,30 @@ test('mentions match non-ASCII and dotted handles', async () => {
   assert.deepEqual(result, ['josé', '你好', 'first.last', 'josé@bücher.local', '你好@你好.local']);
 });
 
+// a handle may be typed with any prefix we read: `@` for people, `&` or `!` for groups (`!` is the threadiverse's), `+` for topics. The prefix typed is the one the search asks for and the one inserted
+test('mentions match and keep every handle prefix', async () => {
+  await openEditor();
+  const result = await page.evaluate(() => {
+    const make = value => ({type:'doc',content:[{type:'paragraph',content:[{type:'text',text:value}]}]});
+    return ['@alice', '&group', '!group', '+topic', '!group@lemmy.local'].map(value => {
+      editorTest.setDoc(make(value), value.length + 1);
+      const view = editorTest.view();
+      const match = editorTest.getMentionMatchInfo(view.state);
+      // the server's id carries the prefix asked for, and one without gets the prefix typed
+      const fromServer = editorTest.insertMention(view.state, match, `${match?.prefix}${match?.query}`)?.doc.textContent;
+      const bare = editorTest.insertMention(view.state, match, match?.query)?.doc.textContent;
+      return [match?.prefix, match?.query, fromServer, bare];
+    });
+  });
+  assert.deepEqual(result, [
+    ['@', 'alice', '@alice ', '@alice '],
+    ['&', 'group', '&group ', '&group '],
+    ['!', 'group', '!group ', '!group '],
+    ['+', 'topic', '+topic ', '+topic '],
+    ['!', 'group@lemmy.local', '!group@lemmy.local ', '!group@lemmy.local '],
+  ]);
+});
+
 test('underscores in non-ASCII mentions are not escaped on submit', async () => {
   await openEditor();
   const markdown = await page.evaluate(() => {

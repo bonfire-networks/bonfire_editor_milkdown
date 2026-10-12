@@ -8,16 +8,19 @@ export function getMentionMatchInfo(state) {
   if (!(selection instanceof TextSelection) || !empty || !$from.parent.isTextblock || $from.parent.type.spec.code || $from.marks().some(mark => mark.type.spec.code)) return null;
 
   const text = $from.parent.textBetween(0, $from.parentOffset, undefined, '\uFFFC');
-  // letters and digits in any script (e.g. josé or 你好), and IDN hosts
-  const match = text.match(/(?:^|[\s(])(@([\p{L}\p{M}\p{N}_.-]+(?:@[\p{L}\p{M}\p{N}_.-]*)?))$/u);
-  if (!match || (match[2].length < 2 && !match[2].includes('@'))) return null;
-  return { from: from - match[1].length, to: from, query: match[2] };
+  // any handle prefix we read: `@` for people, `&` or `!` for groups (`!` is the threadiverse's), `+` for topics. Letters and digits in any script (e.g. josé or 你好), and IDN hosts
+  const match = text.match(/(?:^|[\s(])(([@&+!])([\p{L}\p{M}\p{N}_.-]+(?:@[\p{L}\p{M}\p{N}_.-]*)?))$/u);
+  if (!match || (match[3].length < 2 && !match[3].includes('@'))) return null;
+  return { from: from - match[1].length, to: from, prefix: match[2], query: match[3] };
 }
+
+const sameMatch = (a, b) => a.prefix === b.prefix && a.query === b.query;
 
 export function insertMention(state, match, mention) {
   const current = getMentionMatchInfo(state);
-  if (!current || !match || current.query !== match.query || current.from !== match.from || current.to !== match.to) return null;
-  return state.tr.insertText(`${mention.startsWith('@') ? mention : '@' + mention} `, current.from, current.to);
+  if (!current || !match || !sameMatch(current, match) || current.from !== match.from || current.to !== match.to) return null;
+  // the server's id carries the prefix it was asked for; one without gets the prefix typed
+  return state.tr.insertText(`${/^[@&+!]/.test(mention) ? mention : current.prefix + mention} `, current.from, current.to);
 }
 
 function createMentionItem(item, index) {
@@ -66,7 +69,7 @@ function createMentionMenu(view, hook) {
     debounce: 0,
     shouldShow: () => {
       const match = getMatch();
-      return !!(match && displayedMatch && match.query === displayedMatch.query && match.from === displayedMatch.from && match.to === displayedMatch.to && items.length);
+      return !!(match && displayedMatch && sameMatch(match, displayedMatch) && match.from === displayedMatch.from && match.to === displayedMatch.to && items.length);
     },
   });
   const cancelSearch = () => {
@@ -93,7 +96,7 @@ function createMentionMenu(view, hook) {
       provider.hide();
       return;
     }
-    if (query === match.query) {
+    if (query && sameMatch(query, match)) {
       if (items.length) {
         displayedMatch = match;
         provider.update(view);
@@ -102,7 +105,8 @@ function createMentionMenu(view, hook) {
     }
 
     cancelSearch();
-    query = match.query;
+    // the prefix too, since `&ann` and `@ann` search different types
+    query = { prefix: match.prefix, query: match.query };
     // Keep the previous results on screen, retargeted to the current range, until the new ones arrive.
     if (items.length) {
       displayedMatch = match;
@@ -112,11 +116,11 @@ function createMentionMenu(view, hook) {
     controller = request;
     timeout = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/tag/autocomplete/ck5/@/${encodeURIComponent(match.query)}`, { signal: request.signal });
+        const response = await fetch(`/api/tag/autocomplete/ck5/${encodeURIComponent(match.prefix)}/${encodeURIComponent(match.query)}`, { signal: request.signal });
         if (!response.ok) throw new Error(`Mention search returned ${response.status}`);
         const results = await response.json();
         const latest = getMatch();
-        if (request.signal.aborted || !latest || latest.query !== match.query) return;
+        if (request.signal.aborted || !latest || !sameMatch(latest, match)) return;
         items = results.filter(item => typeof item.id === 'string' && item.id).slice(0, 8);
         displayedMatch = latest;
         content.replaceChildren(...items.map((item, index) => createMentionItem(item, index)));
