@@ -28,7 +28,6 @@
 .milkdown-placeholder {
   color: var(--color-text-muted, #9ca3af);
   pointer-events: none;
-  font-style: italic;
 }
 
 /* Markdown content styling */

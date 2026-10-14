@@ -25,7 +25,7 @@
   <div
     id="editor"
     class="w-full flex flex-1 h-full min-h-0 markdown-editor"
-    data-placeholder={l("Write something...")}
+    data-placeholder={l("What’s on your mind?")}
   >
   </div>
 </div>
