@@ -368,6 +368,48 @@ test('reply insertion preserves a trailing space without a sentinel and reset fl
   assert.equal(result.input.trim(), '');
 });
 
+test('typing after a reply mention keeps the space', async () => {
+  const warnings = [];
+  page.on('console', message => { if (message.type() === 'warning') warnings.push(message.text()); });
+  await openEditor();
+  await page.evaluate(() => events.mention_suggestions({text:'foo_bar'}));
+  await page.keyboard.type('hi');
+  const result = await page.evaluate(() => ({
+    text: editorTest.view().state.doc.textContent,
+    markdown: editorTest.serialize(),
+  }));
+  assert.deepEqual(result, {text: '@foo_bar hi', markdown: '@foo_bar hi\n'});
+  assert.deepEqual(warnings.filter(warning => warning.includes('white-space')), []);
+});
+
+// Drafts are restored the way bonfire_live.js stores them: the serialized Markdown, from localStorage
+async function openWithDraftAndType(draft, typed) {
+  await page.addInitScript(draft => { window.Bonfire = { getComposerDraft: () => draft }; }, draft);
+  await openEditor();
+  if (typed) {
+    await page.focus('.ProseMirror');
+    await page.keyboard.press('End');
+    await page.keyboard.type(typed);
+  }
+  return page.evaluate(() => ({
+    text: editorTest.view().state.doc.textContent,
+    markdown: editorTest.serialize(),
+  }));
+}
+
+test('a restored draft keeps its trailing space when typing', async () => {
+  assert.deepEqual(await openWithDraftAndType('@foo_bar \n', 'hi'), {text: '@foo_bar hi', markdown: '@foo_bar hi\n'});
+});
+
+test('every restored draft continues after a space', async () => {
+  assert.deepEqual(await openWithDraftAndType('hello\n', 'hi'), {text: 'hello hi', markdown: 'hello hi\n'});
+});
+
+test('a restored draft ending in a code block gets no extra space', async () => {
+  const draft = '```\ncode\n```\n';
+  assert.deepEqual(await openWithDraftAndType(draft), {text: 'code', markdown: draft});
+});
+
 test('destroying during lazy loading leaves no editor or pending update', async () => {
   let release;
   const held = new Promise(resolve => release = resolve);

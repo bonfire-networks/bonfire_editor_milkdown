@@ -160,6 +160,8 @@ async function initEditor(hook, hiddenInput, container) {
         ...previous,
         attributes: {
           class: 'milkdown-editor relative mx-auto focus:outline-hidden h-full p-2 prose prose-bonfire break-normal max-w-none text-base-content prose-hr:!my-2 prose-br:hidden',
+          // ProseMirror reads typed text back from the DOM, so a collapsed trailing space (e.g. after a reply mention) is lost on the next keystroke
+          style: 'white-space: pre-wrap; white-space: break-spaces',
           spellcheck: 'false',
           autocomplete: 'off',
         },
@@ -193,6 +195,16 @@ async function initEditor(hook, hiddenInput, container) {
   setupLazyEmojiPicker(editor, hook);
 }
 
+// The Markdown parse drops a draft's trailing space (e.g. after a reply mention), so continue typing after a fresh one
+function appendTrailingSpace(editor) {
+  editor.action(ctx => {
+    const view = ctx.get(editorViewCtx);
+    const last = view.state.doc.lastChild;
+    if (last?.type.name !== 'paragraph' || !last.textContent || /\s$/.test(last.textContent)) return;
+    view.dispatch(view.state.tr.insertText(' ', view.state.doc.content.size - 1).setMeta('addToHistory', false));
+  });
+}
+
 export async function mountEditor(hook) {
   const hiddenInput = hook.el.querySelector('#editor_hidden_input');
   const container = hook.el.querySelector('#editor');
@@ -203,6 +215,7 @@ export async function mountEditor(hook) {
   if (draft) hiddenInput.value = draft;
   await initEditor(hook, hiddenInput, container);
   if (hook._destroyed) return;
+  if (draft) appendTrailingSpace(hook.editor);
   if (hiddenInput.value) hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
