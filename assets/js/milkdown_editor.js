@@ -10,14 +10,14 @@ import {
 import { trailing } from '@milkdown/kit/plugin/trailing';
 import { history } from '@milkdown/kit/plugin/history';
 import { indent } from '@milkdown/kit/plugin/indent';
-import { replaceAll, $prose, $inputRule } from '@milkdown/utils';
-import { commonmark, headingAttr, linkSchema } from '@milkdown/preset-commonmark';
-import { InputRule } from '@milkdown/prose/inputrules';
+import { replaceAll, $prose } from '@milkdown/utils';
+import { commonmark, hardbreakSchema, headingAttr, linkSchema } from '@milkdown/preset-commonmark';
 import { clipboard } from '@milkdown/kit/plugin/clipboard';
 import { Plugin, PluginKey, TextSelection } from '@milkdown/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/prose/view';
 import { createMentionsPlugin } from './mentions.js';
 import { createContentSyncPlugin } from './content_sync.js';
+import { createLinkConversionPlugin } from './links.js';
 import { serializeSocialText } from './submit_markdown.js';
 // The main bundle also registers this element. createElement uses the registered class regardless of which bundle loaded first.
 import 'emoji-picker-element';
@@ -37,19 +37,6 @@ function createPlaceholder(container) {
     },
   }));
 }
-
-// commonmark has a link schema but no link input rule; a targeted rule avoids reparsing mention text.
-const linkInputRule = $inputRule(ctx => new InputRule(
-  /\[([^\]]+)\]\((\S+)\)$/,
-  (state, match, start, end) => {
-    const [, text, href] = match;
-    const mark = linkSchema.type(ctx).create({ href, title: null });
-    const initialStoredMarks = state.storedMarks ?? [];
-    return state.tr
-      .replaceWith(start, end, state.schema.text(text, [mark]))
-      .setStoredMarks(initialStoredMarks);
-  },
-));
 
 function getComposerRoot(hookInstance) {
   return hookInstance?.el?.closest('form') || hookInstance?.el || document;
@@ -156,10 +143,20 @@ async function initEditor(hook, hiddenInput, container) {
         'data-el-type': node.attrs.level <= 4 ? 'h3' : 'h4',
         id: null,
       }));
+      // Posts render soft breaks as `<br>` (MDEx `hardbreaks: true`), not as a space
+      ctx.update(hardbreakSchema.key, schema => innerCtx => {
+        const spec = schema(innerCtx);
+        return {
+          ...spec,
+          parseDOM: [{ tag: 'br[data-is-inline="true"]', getAttrs: () => ({ isInline: true }) }, ...spec.parseDOM],
+          toDOM: node => ['br', spec.toDOM(node)[1]],
+        };
+      });
       ctx.update(editorViewOptionsCtx, previous => ({
         ...previous,
         attributes: {
-          class: 'milkdown-editor relative mx-auto focus:outline-hidden h-full p-2 prose prose-bonfire break-normal max-w-none text-base-content prose-hr:!my-2 prose-br:hidden',
+          // prose-p:!my-1: the post body's paragraph spacing
+          class: 'milkdown-editor relative mx-auto focus:outline-hidden h-full p-2 prose prose-bonfire break-normal max-w-none text-base-content prose-hr:!my-2 prose-br:hidden prose-p:!my-1',
           // ProseMirror reads typed text back from the DOM, so a collapsed trailing space (e.g. after a reply mention) is lost on the next keystroke
           style: 'white-space: pre-wrap; white-space: break-spaces',
           spellcheck: 'false',
@@ -182,7 +179,7 @@ async function initEditor(hook, hiddenInput, container) {
     .use(clipboard)
     .use(history)
     .use(createMentionsPlugin(hook))
-    .use(linkInputRule)
+    .use(createLinkConversionPlugin())
     .use(createPlaceholder(container))
     .use(createContentSyncPlugin(hook, hiddenInput))
     .create();
@@ -201,7 +198,10 @@ function appendTrailingSpace(editor) {
     const view = ctx.get(editorViewCtx);
     const last = view.state.doc.lastChild;
     if (last?.type.name !== 'paragraph' || !last.textContent || /\s$/.test(last.textContent)) return;
-    view.dispatch(view.state.tr.insertText(' ', view.state.doc.content.size - 1).setMeta('addToHistory', false));
+    const end = view.state.doc.content.size - 1;
+    // The link mark is inclusive
+    const marks = linkSchema.type(ctx).removeFromSet(view.state.doc.resolve(end).marks());
+    view.dispatch(view.state.tr.insert(end, view.state.schema.text(' ', marks)).setMeta('addToHistory', false));
   });
 }
 

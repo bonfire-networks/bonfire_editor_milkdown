@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { chromium } from 'playwright';
+import { contentCases } from './composer_content_cases.mjs';
 
 const assets = fileURLToPath(new URL('..', import.meta.url));
 let browser, server, origin, page;
@@ -352,6 +353,138 @@ test('paste respects HTML and keeps Markdown syntax literal inside code', async 
   assert.equal(result.markdown.content[0].content[0].marks[0].type, 'link');
 });
 
+// Steps: typed text, { key }, { paste, html } or { setDoc, pos }
+async function typeSteps(...steps) {
+  await openEditor();
+  await page.focus('.ProseMirror');
+  for (const step of steps) {
+    if (step.key) {
+      await page.keyboard.press(step.key);
+      // ProseMirror reads native cursor moves on the async selectionchange
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await page.waitForFunction(() => {
+        const view = editorTest.view(), selection = document.getSelection();
+        return view.state.selection.head === view.posAtDOM(selection.focusNode, selection.focusOffset);
+      });
+    }
+    else if (step.setDoc) await page.evaluate(({ setDoc, pos }) => editorTest.setDoc(setDoc, pos), step);
+    else if (step.paste) await page.evaluate(({ paste, html }) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', paste);
+      if (html) data.setData('text/html', html);
+      editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    }, step);
+    else await page.keyboard.type(step);
+  }
+  return page.evaluate(() => ({ doc: editorTest.view().state.doc.toJSON(), markdown: editorTest.serialize() }));
+}
+const linked = (value, href, title = null, marks = []) => ({ ...text(value), marks: [...marks, { type: 'link', attrs: { href, title } }] });
+
+for (const { id, steps, markdown, todo } of contentCases) {
+  test(`composer content ${id} sends the expected Markdown`, { todo }, async () => {
+    assert.equal((await typeSteps(...steps)).markdown, markdown);
+  });
+}
+
+test('a link URL typed into ready-made brackets converts when typing continues after them', async () => {
+  const inside = await typeSteps('[a]()', { key: 'ArrowLeft' }, 'https://example.com');
+  assert.deepEqual(inside.doc, doc(paragraph(text('[a](https://example.com)'))));
+  const result = await typeSteps('[a]()', { key: 'ArrowLeft' }, 'https://example.com', { key: 'End' }, ' ok');
+  assert.deepEqual(result.doc, doc(paragraph(linked('a', 'https://example.com'), text(' ok'))));
+  assert.equal(result.markdown, '[a](https://example.com) ok\n');
+});
+
+test('a link converts when its opening bracket is typed last', async () => {
+  const result = await typeSteps('a](https://example.com)', { key: 'Home' }, '[', { key: 'End' }, ' ok');
+  assert.deepEqual(result.doc, doc(paragraph(linked('a', 'https://example.com'), text(' ok'))));
+});
+
+test('a link URL pasted into ready-made brackets converts when typing continues after them', async () => {
+  const result = await typeSteps('[a]()', { key: 'ArrowLeft' }, { paste: 'https://example.com' }, { key: 'End' }, ' ok');
+  assert.deepEqual(result.doc, doc(paragraph(linked('a', 'https://example.com'), text(' ok'))));
+});
+
+test('a link URL with balanced brackets keeps them', async () => {
+  const result = await typeSteps('[w](https://en.wikipedia.org/wiki/Foo_(bar))');
+  assert.deepEqual(result.doc, doc(paragraph(linked('w', 'https://en.wikipedia.org/wiki/Foo_(bar)'))));
+});
+
+test('a typed link title is stored on the link', async () => {
+  const result = await typeSteps('[a](https://example.com "t")');
+  assert.deepEqual(result.doc, doc(paragraph(linked('a', 'https://example.com', 't'))));
+});
+
+test('formatting inside link text survives the conversion', async () => {
+  const result = await typeSteps('[**a** b](https://example.com)');
+  const [bold, rest] = result.doc.content[0].content;
+  assert.deepEqual(bold, linked('a', 'https://example.com', null, [{ type: 'strong', attrs: { marker: '*' } }]));
+  assert.deepEqual(rest.marks, [{ type: 'link', attrs: { href: 'https://example.com', title: null } }]);
+});
+
+test('link text typed into ready-made brackets stays whole', async () => {
+  const result = await typeSteps('[](https://example.com)', { key: 'Home' }, { key: 'ArrowRight' }, 'abc', { key: 'End' }, ' ok');
+  assert.deepEqual(result.doc, doc(paragraph(linked('abc', 'https://example.com'), text(' ok'))));
+});
+
+test('a literal link loaded from a draft stays literal while typing', async () => {
+  const draft = await openWithDraftAndType('\\[a]\\(https://example.com)', 'x');
+  assert.equal(draft.text, '[a](https://example.com) x');
+});
+
+test('a range selection over a waiting link leaves the text alone', async () => {
+  const result = await typeSteps('[a]()', { key: 'ArrowLeft' }, 'https://example.com', { key: 'Shift+End' });
+  assert.deepEqual(result.doc, doc(paragraph(text('[a](https://example.com)'))));
+});
+
+test('a quoted title may hold a closing bracket', async () => {
+  const result = await typeSteps('[a](https://example.com "x)")');
+  assert.deepEqual(result.doc, doc(paragraph(linked('a', 'https://example.com', 'x)'))));
+});
+
+test('a pasted single newline shows as a line break in the composer, as it does in the post', async () => {
+  await typeSteps({ paste: 'a\nb' });
+  assert.equal(await page.evaluate(() => document.querySelector('.ProseMirror').innerText), 'a\nb');
+});
+
+// A real Chromium IME composition
+test('a closing bracket typed through an IME converts after the composition, not during it', async () => {
+  await typeSteps('[a](https://example.com');
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.imeSetComposition', { text: ')', selectionStart: 1, selectionEnd: 1 });
+  const composing = await page.evaluate(() => editorTest.view().state.doc.textContent);
+  await cdp.send('Input.insertText', { text: ')' });
+  await page.waitForFunction(() => editorTest.view().state.doc.firstChild.firstChild?.marks.length);
+  assert.equal(composing, '[a](https://example.com)');
+  assert.deepEqual(await page.evaluate(() => editorTest.view().state.doc.toJSON()), doc(paragraph(linked('a', 'https://example.com'))));
+});
+
+test('link conversion leaves code alone', async () => {
+  await openEditor();
+  const code = await page.evaluate(async source => {
+    const typeAtEnd = async (json, end) => {
+      editorTest.setDoc(json, end);
+      const view = editorTest.view();
+      view.dispatch(view.state.tr.insertText(')'));
+      return view.state.doc.toJSON();
+    };
+    return [
+      await typeAtEnd({type:'doc',content:[{type:'code_block',content:[{type:'text',text:source}]}]}, source.length + 1),
+      await typeAtEnd({type:'doc',content:[{type:'paragraph',content:[{type:'text',text:source,marks:[{type:'inlineCode'}]}]}]}, source.length + 1),
+    ];
+  }, '[a](https://example.com');
+  assert.ok(!JSON.stringify(code).includes('"link"'));
+});
+
+test('link conversion leaves images alone', async () => {
+  const image = await typeSteps('![a](https://example.com/x.png)');
+  assert.ok(!JSON.stringify(image.doc).includes('"link"'));
+});
+
+test('link conversion keeps mention text, and text typed after a link is not linked', async () => {
+  const mention = await typeSteps('@foo_bar [a](https://example.com) x');
+  assert.equal(mention.markdown, '@foo_bar [a](https://example.com) x\n');
+});
+
 test('reply insertion preserves a trailing space without a sentinel and reset flushes immediately', async () => {
   await openEditor();
   const result = await page.evaluate(() => {
@@ -403,6 +536,10 @@ test('a restored draft keeps its trailing space when typing', async () => {
 
 test('every restored draft continues after a space', async () => {
   assert.deepEqual(await openWithDraftAndType('hello\n', 'hi'), {text: 'hello hi', markdown: 'hello hi\n'});
+});
+
+test('a restored draft ending in a link continues after the link', async () => {
+  assert.deepEqual(await openWithDraftAndType('see [a](https://example.com)\n', 'hi'), {text: 'see a hi', markdown: 'see [a](https://example.com) hi\n'});
 });
 
 test('a restored draft ending in a code block gets no extra space', async () => {
