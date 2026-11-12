@@ -665,3 +665,46 @@ test('the server hears at once when text appears or is cleared, not on other typ
   });
   assert.deepEqual(blurs, [1, 1, 2]);
 });
+
+test('a restored draft puts the caret at the end, so typing continues it', async () => {
+  await page.addInitScript(() => { window.Bonfire = { getComposerDraft: () => 'Restored draft\n' }; });
+  await openEditor();
+  await page.evaluate(() => events['focus-editor']());
+  await page.keyboard.type('X');
+  assert.equal(await page.evaluate(() => editorTest.view().state.doc.textContent), 'Restored draft X');
+});
+
+// Reply buttons on feed items (bonfire_ui_social reply_live.sface): data-id="action_reply", phx-value-id = the post
+async function clickReplyWith(answer, replyToId = '') {
+  await openEditor();
+  return page.evaluate(async ({ answer, replyToId }) => {
+    const form = document.querySelector('form');
+    form.insertAdjacentHTML('beforeend', `<input type="hidden" name="reply_to[reply_to_id]" value="${replyToId}">`);
+    document.body.insertAdjacentHTML('beforeend', '<button type="button" data-id="action_reply" phx-value-id="post-2">Reply</button>');
+    const view = editorTest.view();
+    view.dispatch(view.state.tr.insertText('My post draft'));
+    hook._flushEditor();
+    let asked = 0, reachedLiveView = 0;
+    window.confirm = () => { asked++; return answer; };
+    window.addEventListener('click', () => reachedLiveView++); // LiveView listens to clicks on window, bubble phase
+    document.querySelector('[data-id="action_reply"]').click();
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return { asked, reachedLiveView, text: view.state.doc.textContent, value: document.querySelector('#editor_hidden_input').value };
+  }, { answer, replyToId });
+}
+
+test('Reply with a new-post draft asks first; declining keeps the draft and stops the reply', async () => {
+  assert.deepEqual(await clickReplyWith(false), { asked: 1, reachedLiveView: 0, text: 'My post draft', value: 'My post draft\n' });
+});
+
+test('Reply with a new-post draft asks first; accepting clears the draft before the reply opens', async () => {
+  const result = await clickReplyWith(true);
+  assert.equal(result.asked, 1);
+  assert.equal(result.reachedLiveView, 1);
+  assert.equal(result.text, '');
+});
+
+test('Reply on the post already being replied to does not ask', async () => {
+  const result = await clickReplyWith(false, 'post-2');
+  assert.deepEqual([result.asked, result.reachedLiveView, result.text], [0, 1, 'My post draft']);
+});

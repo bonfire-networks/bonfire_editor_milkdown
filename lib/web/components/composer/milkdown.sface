@@ -5,6 +5,7 @@
   :hook
   data-editor-bundle={Bonfire.Common.URIs.versioned_static_path("/assets/milkdown_editor.js")}
   data-suggestion={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
+  data-replace-draft-confirm={l("Replace your draft with this reply? The draft will be discarded.")}
   data-disable-mentions={e(@smart_input_opts, :create_object_type, nil) in [:message, "message"] and "true"}
   id="editor_milkdown_container"
   aria-label="Markdown editor"

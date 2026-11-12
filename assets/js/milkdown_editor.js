@@ -13,7 +13,7 @@ import { indent } from '@milkdown/kit/plugin/indent';
 import { replaceAll, $prose } from '@milkdown/utils';
 import { commonmark, hardbreakSchema, headingAttr, linkSchema } from '@milkdown/preset-commonmark';
 import { clipboard } from '@milkdown/kit/plugin/clipboard';
-import { Plugin, PluginKey, TextSelection } from '@milkdown/prose/state';
+import { Plugin, PluginKey, Selection, TextSelection } from '@milkdown/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/prose/view';
 import { createMentionsPlugin } from './mentions.js';
 import { createContentSyncPlugin, notifyServer } from './content_sync.js';
@@ -192,16 +192,20 @@ async function initEditor(hook, hiddenInput, container) {
   setupLazyEmojiPicker(editor, hook);
 }
 
-// The Markdown parse drops a draft's trailing space (e.g. after a reply mention), so continue typing after a fresh one
-function appendTrailingSpace(editor) {
+// A restored draft ending in a paragraph continues after a fresh space (the Markdown parse drops a trailing one, e.g. after a reply mention), with the caret at the end; any other ending is left alone, since any transaction makes the trailing plugin add a paragraph after a code block
+function continueDraft(editor) {
   editor.action(ctx => {
     const view = ctx.get(editorViewCtx);
     const last = view.state.doc.lastChild;
-    if (last?.type.name !== 'paragraph' || !last.textContent || /\s$/.test(last.textContent)) return;
-    const end = view.state.doc.content.size - 1;
-    // The link mark is inclusive
-    const marks = linkSchema.type(ctx).removeFromSet(view.state.doc.resolve(end).marks());
-    view.dispatch(view.state.tr.insert(end, view.state.schema.text(' ', marks)).setMeta('addToHistory', false));
+    if (last?.type.name !== 'paragraph') return;
+    const tr = view.state.tr;
+    if (last.textContent && !/\s$/.test(last.textContent)) {
+      const end = view.state.doc.content.size - 1;
+      // The link mark is inclusive
+      const marks = linkSchema.type(ctx).removeFromSet(view.state.doc.resolve(end).marks());
+      tr.insert(end, view.state.schema.text(' ', marks));
+    }
+    view.dispatch(tr.setSelection(Selection.atEnd(tr.doc)).setMeta('addToHistory', false));
   });
 }
 
@@ -215,8 +219,29 @@ export async function mountEditor(hook) {
   if (draft) hiddenInput.value = draft;
   await initEditor(hook, hiddenInput, container);
   if (hook._destroyed) return;
-  if (draft) appendTrailingSpace(hook.editor);
+  if (draft) continueDraft(hook.editor);
+  hook._guardReplyOverDraft = event => guardReplyOverDraft(hook, event);
+  document.addEventListener('click', hook._guardReplyOverDraft, true);
   if (hiddenInput.value) notifyServer(hiddenInput);
+}
+
+// Reply on another post while the composer holds text: ask before the draft becomes that reply
+function guardReplyOverDraft(hook, event) {
+  const button = event.target.closest?.('[data-id="action_reply"]');
+  if (!button || !hook.editor) return;
+  const form = hook.el.closest('form');
+  const replyingTo = form?.querySelector('[name="reply_to[reply_to_id]"]')?.value || '';
+  const markdown = hook._flushEditor?.(false) || '';
+  if (!markdown.trim() || replyingTo === button.getAttribute('phx-value-id')) return;
+  event.preventDefault();
+  event.stopImmediatePropagation(); // LiveView handles clicks on window, bubble phase
+  if (!window.confirm(hook.el.dataset.replaceDraftConfirm || 'Replace your draft with this reply?')) return;
+  hook.editor.action(replaceAll(''));
+  hook._flushEditor?.();
+  // the whole draft goes (title, content warning, uploads, quote, local draft), as with "Discard draft"; the reply is clicked again only once the reset is done, since it goes to another LiveView and would otherwise race it
+  const replay = () => setTimeout(() => button.click()); // not synchronously: click() is ignored while this click is still being dispatched
+  if (hook.pushEventTo) hook.pushEventTo('#smart_input', 'Bonfire.UI.Common.SmartInput:reset_to_default', {}, replay);
+  else replay();
 }
 
 export function handleServerEvent(hook, name, payload) {
@@ -283,6 +308,7 @@ export async function destroy(hook) {
   }
   hook._currentPicker?.remove();
   hook._currentPicker = null;
+  if (hook._guardReplyOverDraft) document.removeEventListener('click', hook._guardReplyOverDraft, true);
   const editor = hook.editor;
   hook.editor = null;
   await editor?.destroy();
