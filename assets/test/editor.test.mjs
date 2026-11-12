@@ -22,7 +22,7 @@ const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><style>
 <script type="module">
 import Hook from '/hook.js';
 window.events = {};
-window.hook = { ...Hook, el: document.querySelector('#editor_milkdown_container'), handleEvent(name, handler) { window.events[name] = handler; } };
+window.hook = { ...Hook, el: document.querySelector('#editor_milkdown_container'), handleEvent(name, handler) { window.events[name] = handler; }, pushEventTo(_target, _event, _payload, onReply) { onReply?.(); } };
 document.querySelector('form').addEventListener('submit', event => {
   event.preventDefault();
   window.submitted = new FormData(event.target).get('body');

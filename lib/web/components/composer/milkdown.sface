@@ -1,7 +1,7 @@
 <div
   phx-update="ignore"
   data-rendered={@showing_within}
-  class="h-full flex-1 grow min-h-0 overflow-y-auto"
+  class="h-full flex-1 grow min-h-0 overflow-y-auto overscroll-contain"
   :hook
   data-editor-bundle={Bonfire.Common.URIs.versioned_static_path("/assets/milkdown_editor.js")}
   data-suggestion={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
@@ -14,7 +14,7 @@
 >
   <span class="sr-only">
     <label for="editor_hidden_input">{l("Content")}</label>
-    {!-- textarea, not input type=hidden: a hidden input's value is an attribute, and daisyUI's theme-controller :has() rule restyles the whole page on every change; hidden so Milkdown does not render it (6ad171b); phx-debounce=blur: validate runs on blur, see content_sync.js --}
+    {!-- a textarea: an input's value is an attribute, and daisyUI's theme-controller :has() rule restyles the whole page whenever it changes --}
     <textarea
       name={@field_name}
       id="editor_hidden_input"

@@ -192,12 +192,12 @@ async function initEditor(hook, hiddenInput, container) {
   setupLazyEmojiPicker(editor, hook);
 }
 
-// A restored draft ending in a paragraph continues after a fresh space (the Markdown parse drops a trailing one, e.g. after a reply mention), with the caret at the end; any other ending is left alone, since any transaction makes the trailing plugin add a paragraph after a code block
+// A restored draft continues after a fresh space (the Markdown parse drops a trailing one), with the caret at the end
 function continueDraft(editor) {
   editor.action(ctx => {
     const view = ctx.get(editorViewCtx);
     const last = view.state.doc.lastChild;
-    if (last?.type.name !== 'paragraph') return;
+    if (last?.type.name !== 'paragraph') return; // any transaction makes the trailing plugin add a paragraph after a code block
     const tr = view.state.tr;
     if (last.textContent && !/\s$/.test(last.textContent)) {
       const end = view.state.doc.content.size - 1;
@@ -222,6 +222,22 @@ export async function mountEditor(hook) {
   if (draft) continueDraft(hook.editor);
   hook._guardReplyOverDraft = event => guardReplyOverDraft(hook, event);
   document.addEventListener('click', hook._guardReplyOverDraft, true);
+  // the keyboard opening (or closing) shrinks the visible area, and an iOS paste does not scroll: keep the caret in view once things settle
+  hook._followCaret = () => {
+    clearTimeout(hook._followCaretTimer);
+    hook._followCaretTimer = setTimeout(() => hook.editor?.action(ctx => {
+      const view = ctx.get(editorViewCtx);
+      if (!view.hasFocus() || (window.visualViewport?.scale ?? 1) !== 1) return; // not while pinch-zoomed
+      // scroll the text area directly: a transaction would let the trailing plugin add a paragraph after a code block
+      const caret = view.coordsAtPos(view.state.selection.head);
+      const box = hook.el.getBoundingClientRect();
+      if (caret.bottom > box.bottom) hook.el.scrollTop += caret.bottom - box.bottom + 8;
+      else if (caret.top < box.top) hook.el.scrollTop -= box.top - caret.top + 8;
+    }), 150);
+  };
+  window.visualViewport?.addEventListener('resize', hook._followCaret);
+  container.addEventListener('paste', hook._followCaret);
+  hook._followCaretContainer = container;
   if (hiddenInput.value) notifyServer(hiddenInput);
 }
 
@@ -229,19 +245,15 @@ export async function mountEditor(hook) {
 function guardReplyOverDraft(hook, event) {
   const button = event.target.closest?.('[data-id="action_reply"]');
   if (!button || !hook.editor) return;
-  const form = hook.el.closest('form');
-  const replyingTo = form?.querySelector('[name="reply_to[reply_to_id]"]')?.value || '';
+  const replyingTo = getComposerRoot(hook).querySelector('[name="reply_to[reply_to_id]"]')?.value || '';
   const markdown = hook._flushEditor?.(false) || '';
   if (!markdown.trim() || replyingTo === button.getAttribute('phx-value-id')) return;
   event.preventDefault();
   event.stopImmediatePropagation(); // LiveView handles clicks on window, bubble phase
   if (!window.confirm(hook.el.dataset.replaceDraftConfirm || 'Replace your draft with this reply?')) return;
-  hook.editor.action(replaceAll(''));
-  hook._flushEditor?.();
-  // the whole draft goes (title, content warning, uploads, quote, local draft), as with "Discard draft"; the reply is clicked again only once the reset is done, since it goes to another LiveView and would otherwise race it
-  const replay = () => setTimeout(() => button.click()); // not synchronously: click() is ignored while this click is still being dispatched
-  if (hook.pushEventTo) hook.pushEventTo('#smart_input', 'Bonfire.UI.Common.SmartInput:reset_to_default', {}, replay);
-  else replay();
+  handleReset(hook);
+  // discard the whole draft, as "Discard draft" does; Reply goes to another LiveView, so it is clicked again once the reset is done
+  hook.pushEventTo('#smart_input', 'Bonfire.UI.Common.SmartInput:reset_to_default', {}, () => setTimeout(() => button.click())); // click() is ignored during this click's dispatch
 }
 
 export function handleServerEvent(hook, name, payload) {
@@ -309,6 +321,11 @@ export async function destroy(hook) {
   hook._currentPicker?.remove();
   hook._currentPicker = null;
   if (hook._guardReplyOverDraft) document.removeEventListener('click', hook._guardReplyOverDraft, true);
+  if (hook._followCaret) {
+    window.visualViewport?.removeEventListener('resize', hook._followCaret);
+    hook._followCaretContainer?.removeEventListener('paste', hook._followCaret);
+  }
+  clearTimeout(hook._followCaretTimer);
   const editor = hook.editor;
   hook.editor = null;
   await editor?.destroy();
