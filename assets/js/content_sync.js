@@ -11,6 +11,8 @@ export function createContentSyncPlugin(hook, hiddenInput) {
       let markdown;
       let lastNotified = hiddenInput.value;
       let destroyed = false;
+      let wasEmpty = !hiddenInput.value.trim();
+      const form = hiddenInput.form;
       const flush = (notify = true) => {
         if (destroyed) return;
         if (notify) clearTimeout(timeout);
@@ -19,19 +21,29 @@ export function createContentSyncPlugin(hook, hiddenInput) {
           lastDoc = view.state.doc;
         }
         hiddenInput.value = markdown;
+        const empty = !markdown.trim();
+        if (notify && !empty && !form?.classList.contains('phx-submit-loading')) { // enable Post without waiting for the server; never during a submit, since LiveView disables Post before the FormData that calls flush(false)
+          form?.querySelector('#submit_btn')?.removeAttribute('disabled');
+        }
         if (notify && lastNotified !== markdown) {
           lastNotified = markdown;
           hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+          if (empty !== wasEmpty) { // text appeared or was cleared: tell the server now, so its Post state and re-renders match
+            wasEmpty = empty;
+            hiddenInput.dispatchEvent(new Event('blur'));
+          }
         }
         return markdown;
       };
-      const form = hiddenInput.form;
       const handleSubmit = () => flush(false);
       const handleFormData = event => {
         // FormData has already taken its snapshot when this event fires.
         event.formData.set(hiddenInput.name, flush(false));
       };
-      const handleBlur = () => flush();
+      const handleBlur = () => {
+        flush();
+        hiddenInput.dispatchEvent(new Event('blur')); // the textarea's phx-debounce="blur" sends the held change now; it never has focus itself
+      };
       form?.addEventListener('submit', handleSubmit, true);
       form?.addEventListener('formdata', handleFormData);
       view.dom.addEventListener('blur', handleBlur);
@@ -54,4 +66,10 @@ export function createContentSyncPlugin(hook, hiddenInput) {
       };
     },
   }));
+}
+
+// Sends the textarea's value to the server now, past its phx-debounce="blur".
+export function notifyServer(hiddenInput) {
+  hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+  hiddenInput.dispatchEvent(new Event('blur'));
 }

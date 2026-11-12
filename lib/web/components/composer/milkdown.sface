@@ -13,14 +13,15 @@
 >
   <span class="sr-only">
     <label for="editor_hidden_input">{l("Content")}</label>
-    <input
+    {!-- textarea, not input type=hidden: a hidden input's value is an attribute, and daisyUI's theme-controller :has() rule restyles the whole page on every change; hidden so Milkdown does not render it (6ad171b); phx-debounce=blur: validate runs on blur, see content_sync.js --}
+    <textarea
       name={@field_name}
       id="editor_hidden_input"
-      type="hidden"
-      value={e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}
+      hidden
       aria-hidden="true"
       data-persist-draft
-    />
+      phx-debounce="blur"
+    >{"\n"}{e(@smart_input_opts, :text_suggestion, nil) || e(@smart_input_opts, :text, nil)}</textarea>
   </span>
   <div
     id="editor"

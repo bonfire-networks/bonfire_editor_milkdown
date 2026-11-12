@@ -16,7 +16,7 @@ const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><style>
 #editor { min-height:120px } .ProseMirror { min-height:100px }
 </style></head><body><form id="composer">
 <div id="editor_milkdown_container" data-editor-bundle="/editor.js">
-<input type="hidden" id="editor_hidden_input" name="body" value="" data-persist-draft>
+<textarea hidden id="editor_hidden_input" name="body" data-persist-draft></textarea>
 <div id="editor" data-placeholder="Scrivi qualcosa…"></div>
 </div><button id="submit" type="submit">Send</button></form>
 <script type="module">
@@ -144,7 +144,7 @@ test('root updates and reconnect do not replace newer typing', async () => {
     hook.el.dataset.suggestion = 'older server value';
     hook.updated?.();
     hook.reconnected();
-    return { document: view.state.doc.textContent, input: document.querySelector('input').value };
+    return { document: view.state.doc.textContent, input: document.querySelector('#editor_hidden_input').value };
   });
   assert.equal(result.document, 'Unsaved edit');
   assert.equal(result.input.trim(), 'Unsaved edit');
@@ -493,7 +493,7 @@ test('reply insertion preserves a trailing space without a sentinel and reset fl
     const caret = editorTest.view().state.selection.from;
     const markdown = editorTest.serialize();
     events['smart_input:reset']({});
-    return {mention, caret, markdown, input: document.querySelector('input').value};
+    return {mention, caret, markdown, input: document.querySelector('#editor_hidden_input').value};
   });
   assert.equal(result.mention, '@foo_bar ');
   assert.equal(result.caret, 10);
@@ -564,7 +564,7 @@ test('destroy cancels the pending content notification', async () => {
   await openEditor();
   await page.evaluate(async () => {
     window.notifications = 0;
-    document.querySelector('input').addEventListener('input', () => notifications++);
+    document.querySelector('#editor_hidden_input').addEventListener('input', () => notifications++);
     editorTest.view().dispatch(editorTest.view().state.tr.insertText('pending'));
     await hook._mod.destroy(hook);
   });
@@ -586,10 +586,82 @@ test('mention requests are disabled for messages and ordinary typing emits one d
   await page.evaluate(() => {
     hook.el.dataset.disableMentions = 'true';
     window.notifications = 0;
-    document.querySelector('input').addEventListener('input', () => notifications++);
+    document.querySelector('#editor_hidden_input').addEventListener('input', () => notifications++);
   });
   await page.locator('.ProseMirror').fill('@alice');
-  await page.waitForFunction(() => document.querySelector('input').value.includes('@alice'));
+  await page.waitForFunction(() => document.querySelector('#editor_hidden_input').value.includes('@alice'));
   assert.equal(requests, 0);
   assert.equal(await page.evaluate(() => notifications), 1);
+});
+
+test('typing enables a disabled Post button without a server reply, empty text leaves it disabled', async () => {
+  await openEditor();
+  await page.evaluate(() => {
+    const button = document.createElement('button');
+    button.id = 'submit_btn';
+    button.disabled = true;
+    document.querySelector('form').append(button);
+    const view = editorTest.view();
+    view.dispatch(view.state.tr.insertText('   '));
+    hook._flushEditor();
+  });
+  assert.equal(await page.evaluate(() => document.querySelector('#submit_btn').disabled), true);
+  await page.evaluate(() => editorTest.view().dispatch(editorTest.view().state.tr.insertText('Hi')));
+  await page.waitForFunction(() => !document.querySelector('#submit_btn').disabled);
+});
+
+test('editor blur passes a blur to the hidden field, so phx-debounce="blur" sends the change', async () => {
+  await openEditor();
+  const events = await page.evaluate(() => {
+    const input = document.querySelector('#editor_hidden_input');
+    const view = editorTest.view();
+    view.dispatch(view.state.tr.insertText('Draft'));
+    hook._flushEditor();
+    const events = [];
+    input.addEventListener('input', () => events.push('input'));
+    input.addEventListener('blur', () => events.push('blur'));
+    view.dispatch(view.state.tr.insertText(' more'));
+    view.dom.dispatchEvent(new Event('blur'));
+    return events;
+  });
+  assert.deepEqual(events, ['input', 'blur']);
+});
+
+test('a submit in progress keeps a disabled Post button disabled', async () => {
+  await openEditor();
+  const result = await page.evaluate(async () => {
+    const form = document.querySelector('form');
+    const button = document.createElement('button');
+    button.id = 'submit_btn';
+    form.append(button);
+    const view = editorTest.view();
+    view.dispatch(view.state.tr.insertText('Posting now'));
+    // what LiveView does on submit: lock the form, disable Post, then serialise
+    form.classList.add('phx-submit-loading');
+    button.disabled = true;
+    const body = new FormData(form).get('body');
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return { body, disabled: button.disabled };
+  });
+  assert.equal(result.body.trim(), 'Posting now');
+  assert.equal(result.disabled, true);
+});
+
+test('the server hears at once when text appears or is cleared, not on other typing', async () => {
+  await openEditor();
+  const blurs = await page.evaluate(() => {
+    const input = document.querySelector('#editor_hidden_input');
+    let blurs = 0;
+    input.addEventListener('blur', () => blurs++);
+    const view = editorTest.view();
+    const counts = [];
+    view.dispatch(view.state.tr.insertText('Hi'));
+    hook._flushEditor(); counts.push(blurs);
+    view.dispatch(view.state.tr.insertText(' there'));
+    hook._flushEditor(); counts.push(blurs);
+    view.dispatch(view.state.tr.delete(1, view.state.doc.content.size - 1));
+    hook._flushEditor(); counts.push(blurs);
+    return counts;
+  });
+  assert.deepEqual(blurs, [1, 1, 2]);
 });

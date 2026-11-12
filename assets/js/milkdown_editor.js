@@ -16,7 +16,7 @@ import { clipboard } from '@milkdown/kit/plugin/clipboard';
 import { Plugin, PluginKey, TextSelection } from '@milkdown/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/prose/view';
 import { createMentionsPlugin } from './mentions.js';
-import { createContentSyncPlugin } from './content_sync.js';
+import { createContentSyncPlugin, notifyServer } from './content_sync.js';
 import { createLinkConversionPlugin } from './links.js';
 import { serializeSocialText } from './submit_markdown.js';
 // The main bundle also registers this element. createElement uses the registered class regardless of which bundle loaded first.
@@ -216,7 +216,7 @@ export async function mountEditor(hook) {
   await initEditor(hook, hiddenInput, container);
   if (hook._destroyed) return;
   if (draft) appendTrailingSpace(hook.editor);
-  if (hiddenInput.value) hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+  if (hiddenInput.value) notifyServer(hiddenInput);
 }
 
 export function handleServerEvent(hook, name, payload) {
@@ -271,7 +271,8 @@ function handleReset(hook) {
 export function reconnect(hook) {
   if (!hook.editor) return;
   hook._flushEditor?.(false);
-  hook.el.querySelector('#editor_hidden_input')?.dispatchEvent(new Event('input', { bubbles: true }));
+  const hiddenInput = hook.el.querySelector('#editor_hidden_input');
+  if (hiddenInput) notifyServer(hiddenInput);
 }
 
 export async function destroy(hook) {
