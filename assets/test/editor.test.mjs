@@ -14,15 +14,15 @@ const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><style>
 .milkdown-menu[data-show="true"] { display:block }
 .milkdown-menu { position:absolute; background:white; padding:8px; border:1px solid; list-style:none }
 #editor { min-height:120px } .ProseMirror { min-height:100px }
-</style></head><body><form id="composer">
+</style></head><body><div id="smart_input_container"><form id="composer">
 <div id="editor_milkdown_container" data-editor-bundle="/editor.js">
 <textarea hidden id="editor_hidden_input" name="body" data-persist-draft></textarea>
 <div id="editor" data-placeholder="Scrivi qualcosa…"></div>
-</div><button id="submit" type="submit">Send</button></form>
+</div><button id="submit" type="submit">Send</button></form></div>
 <script type="module">
 import Hook from '/hook.js';
 window.events = {};
-window.hook = { ...Hook, el: document.querySelector('#editor_milkdown_container'), handleEvent(name, handler) { window.events[name] = handler; }, pushEventTo(_target, _event, _payload, onReply) { onReply?.(); } };
+window.hook = { ...Hook, el: document.querySelector('#editor_milkdown_container'), handleEvent(name, handler) { window.events[name] = handler; }, pushEventTo(_target, event, _payload, onReply) { if (event.endsWith(':reset_to_default')) window.events['smart_input:reset']?.(); onReply?.(); } }; // LiveView dispatches the reply's events before onReply
 document.querySelector('form').addEventListener('submit', event => {
   event.preventDefault();
   window.submitted = new FormData(event.target).get('body');
@@ -675,9 +675,11 @@ test('a restored draft puts the caret at the end, so typing continues it', async
 });
 
 // Reply buttons on feed items (bonfire_ui_social reply_live.sface): data-id="action_reply", phx-value-id = the post
-async function clickReplyWith(answer, replyToId = '') {
+async function clickReplyWith(answer, replyToId = '', { connected = true, serverAnswers = true } = {}) {
   await openEditor();
-  return page.evaluate(async ({ answer, replyToId }) => {
+  return page.evaluate(async ({ answer, replyToId, connected, serverAnswers }) => {
+    hook.liveSocket = { isConnected: () => connected };
+    if (!serverAnswers) hook.pushEventTo = () => {}; // a push LiveView rejects (socket down) never calls back
     const form = document.querySelector('form');
     form.insertAdjacentHTML('beforeend', `<input type="hidden" name="reply_to[reply_to_id]" value="${replyToId}">`);
     document.body.insertAdjacentHTML('beforeend', '<button type="button" data-id="action_reply" phx-value-id="post-2">Reply</button>');
@@ -690,7 +692,7 @@ async function clickReplyWith(answer, replyToId = '') {
     document.querySelector('[data-id="action_reply"]').click();
     await new Promise(resolve => setTimeout(resolve, 300));
     return { asked, reachedLiveView, text: view.state.doc.textContent, value: document.querySelector('#editor_hidden_input').value };
-  }, { answer, replyToId });
+  }, { answer, replyToId, connected, serverAnswers });
 }
 
 test('Reply with a new-post draft asks first; declining keeps the draft and stops the reply', async () => {
@@ -702,6 +704,111 @@ test('Reply with a new-post draft asks first; accepting clears the draft before 
   assert.equal(result.asked, 1);
   assert.equal(result.reachedLiveView, 1);
   assert.equal(result.text, '');
+});
+
+test('Reply while disconnected asks nothing and keeps the draft', async () => {
+  const result = await clickReplyWith(true, '', { connected: false });
+  assert.deepEqual([result.asked, result.text], [0, 'My post draft']);
+});
+
+test('accepting keeps the draft when the server never confirms the reset', async () => {
+  const result = await clickReplyWith(true, '', { serverAnswers: false });
+  assert.deepEqual([result.asked, result.reachedLiveView, result.text], [1, 0, 'My post draft']);
+});
+
+test('the text is read-only while the form is being sent, and editable again after', async () => {
+  await openEditor();
+  const states = await page.evaluate(async () => {
+    const form = document.querySelector('form');
+    const editable = () => document.querySelector('.ProseMirror').getAttribute('contenteditable');
+    const tick = () => new Promise(resolve => setTimeout(resolve, 20));
+    const before = editable();
+    form.classList.add('phx-submit-loading');
+    await tick();
+    const sending = editable();
+    form.classList.remove('phx-submit-loading');
+    await tick();
+    return [before, sending, editable()];
+  });
+  assert.deepEqual(states, ['true', 'false', 'true']);
+});
+
+test('a Replace whose answer was lost is released when the socket reconnects', async () => {
+  await clickReplyWith(true, '', { serverAnswers: false });
+  const states = await page.evaluate(async () => {
+    const editable = () => document.querySelector('.ProseMirror').getAttribute('contenteditable');
+    const before = editable();
+    hook._mod.reconnect(hook);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    return [before, editable(), document.querySelector('.ProseMirror').textContent];
+  });
+  assert.deepEqual(states, ['false', 'true', 'My post draft']);
+});
+
+test('a reply\'s focus waits until the composer targets that reply', async () => {
+  await openEditor();
+  const focused = await page.evaluate(async () => {
+    const form = document.querySelector('form');
+    form.insertAdjacentHTML('beforeend', '<input type="hidden" name="reply_to[reply_to_id]" value="">');
+    document.querySelector('.ProseMirror').blur();
+    events['focus-editor']({ to: 'smart_input', reply_to: 'post-9' });
+    await new Promise(resolve => setTimeout(resolve, 150));
+    const early = document.activeElement?.classList.contains('ProseMirror');
+    document.querySelector('[name="reply_to[reply_to_id]"]').value = 'post-9';
+    await new Promise(resolve => setTimeout(resolve, 250));
+    return [early, document.activeElement?.classList.contains('ProseMirror')];
+  });
+  assert.deepEqual(focused, [false, true]);
+});
+
+test('after OK on Replace the text stays read-only until the server\'s reset', async () => {
+  const result = await clickReplyWith(true, '', { serverAnswers: false });
+  const states = await page.evaluate(async () => {
+    const editable = () => document.querySelector('.ProseMirror').getAttribute('contenteditable');
+    const before = editable();
+    events['smart_input:reset']();
+    await new Promise(resolve => setTimeout(resolve, 20));
+    return [before, editable(), document.querySelector('.ProseMirror').textContent];
+  });
+  assert.equal(result.text, 'My post draft');
+  assert.deepEqual(states, ['false', 'true', '']);
+});
+
+test('an editor torn down while sending leaves the composer controls usable', async () => {
+  await openEditor();
+  const states = await page.evaluate(async () => {
+    const form = document.querySelector('form');
+    const container = document.querySelector('#smart_input_container');
+    form.classList.add('phx-submit-loading');
+    await new Promise(resolve => setTimeout(resolve, 20));
+    const sending = container.hasAttribute('data-sending');
+    await hook._mod.destroy(hook);
+    return [sending, container.hasAttribute('data-sending')];
+  });
+  assert.deepEqual(states, [true, false]);
+});
+
+test('accepting focuses the editor once the composer replies to that post', async () => {
+  await clickReplyWith(true);
+  const focused = await page.evaluate(async () => {
+    document.querySelector('.ProseMirror').blur();
+    document.querySelector('[name="reply_to[reply_to_id]"]').value = 'post-2'; // what the server's reply sets
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return document.activeElement?.classList.contains('ProseMirror');
+  });
+  assert.equal(focused, true);
+});
+
+test('pressing a control marked data-keep-editor-focus keeps the editor focused', async () => {
+  await openEditor();
+  const prevented = await page.evaluate(() => {
+    hook.el.insertAdjacentHTML('beforeend', '<button type="button" data-keep-editor-focus>Original post</button>');
+    document.querySelector('.ProseMirror').focus();
+    const event = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+    hook.el.querySelector('[data-keep-editor-focus]').dispatchEvent(event);
+    return event.defaultPrevented;
+  });
+  assert.equal(prevented, true);
 });
 
 test('Reply on the post already being replied to does not ask', async () => {

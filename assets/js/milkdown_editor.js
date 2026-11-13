@@ -222,6 +222,11 @@ export async function mountEditor(hook) {
   if (draft) continueDraft(hook.editor);
   hook._guardReplyOverDraft = event => guardReplyOverDraft(hook, event);
   document.addEventListener('click', hook._guardReplyOverDraft, true);
+  // [data-keep-editor-focus] controls must not take focus, or iOS closes the keyboard
+  hook._keepFocus = event => {
+    if (event.target.closest?.('[data-keep-editor-focus]') && hook.el.contains(document.activeElement)) event.preventDefault();
+  };
+  document.addEventListener('mousedown', hook._keepFocus, true);
   // the keyboard opening (or closing) shrinks the visible area, and an iOS paste does not scroll: keep the caret in view once things settle
   hook._followCaret = () => {
     clearTimeout(hook._followCaretTimer);
@@ -236,9 +241,40 @@ export async function mountEditor(hook) {
     }), 150);
   };
   window.visualViewport?.addEventListener('resize', hook._followCaret);
-  container.addEventListener('paste', hook._followCaret);
-  hook._followCaretContainer = container;
+  hook.el.addEventListener('paste', hook._followCaret); // paste bubbles up from #editor
+  lockWhileSending(hook);
   if (hiddenInput.value) notifyServer(hiddenInput);
+}
+
+// LiveView locks the form's inputs while sending, not this contenteditable: lock it (and, via data-sending, the controls) until the answer
+function lockWhileSending(hook) {
+  const form = hook.el.closest('form');
+  if (!form) return;
+  hook._sendContainer = hook.el.closest('#smart_input_container'); // destroy may run detached
+  let locked = null; // null: the first sync also clears a data-sending left by a previous editor
+  const sync = () => {
+    const now = form.classList.contains('phx-submit-loading') || !!hook._awaitingReset;
+    if (now === locked) return;
+    locked = now;
+    hook.editor?.action(ctx => ctx.get(editorViewCtx).setProps({ editable: () => !now }));
+    hook._sendContainer?.toggleAttribute('data-sending', now);
+  };
+  hook._syncLock = sync;
+  hook._sendLock = new MutationObserver(sync);
+  hook._sendLock.observe(form, { attributes: true, attributeFilter: ['class'] });
+  sync();
+}
+
+// Replace accepted: locked until the server's reset (with its reply), so nothing typed meanwhile is wiped; reconnect releases a lost one
+function awaitReset(hook) {
+  hook._awaitingReset = true;
+  hook._syncLock?.();
+}
+
+function releaseReset(hook) {
+  if (!hook._awaitingReset) return;
+  hook._awaitingReset = false;
+  hook._syncLock?.();
 }
 
 // Reply on another post while the composer holds text: ask before the draft becomes that reply
@@ -248,19 +284,34 @@ function guardReplyOverDraft(hook, event) {
   const replyingTo = getComposerRoot(hook).querySelector('[name="reply_to[reply_to_id]"]')?.value || '';
   const markdown = hook._flushEditor?.(false) || '';
   if (!markdown.trim() || replyingTo === button.getAttribute('phx-value-id')) return;
+  if (hook.liveSocket && !hook.liveSocket.isConnected()) return; // offline: keep the draft, ask nothing
   event.preventDefault();
   event.stopImmediatePropagation(); // LiveView handles clicks on window, bubble phase
   if (!window.confirm(hook.el.dataset.replaceDraftConfirm || 'Replace your draft with this reply?')) return;
-  handleReset(hook);
-  // discard the whole draft, as "Discard draft" does; Reply goes to another LiveView, so it is clicked again once the reset is done
-  hook.pushEventTo('#smart_input', 'Bonfire.UI.Common.SmartInput:reset_to_default', {}, () => setTimeout(() => button.click())); // click() is ignored during this click's dispatch
+  awaitReset(hook);
+  // the reply's smart_input:reset clears and unlocks before this callback (a lost push keeps the draft); Reply targets another LiveView, so it is clicked again
+  hook.pushEventTo('#smart_input', 'Bonfire.UI.Common.SmartInput:reset_to_default', {}, () => {
+    setTimeout(() => button.click()); // click() is ignored during this click's dispatch
+    focusOnceReplying(hook, button.getAttribute('phx-value-id'));
+  });
+}
+
+// focus once the composer targets that post and is unlocked (gives up after 5 s)
+function focusOnceReplying(hook, replyId, tries = 50) {
+  clearTimeout(hook._focusReplyTimer);
+  const input = getComposerRoot(hook).querySelector('[name="reply_to[reply_to_id]"]');
+  if (input?.value === replyId && !hook._awaitingReset) return hook.editor?.action(ctx => ctx.get(editorViewCtx).focus());
+  if (tries > 0) hook._focusReplyTimer = setTimeout(() => focusOnceReplying(hook, replyId, tries - 1), 100);
 }
 
 export function handleServerEvent(hook, name, payload) {
   switch (name) {
     case 'mention_suggestions': return handleMentionSuggestions(hook, payload);
     case 'smart_input:reset': return handleReset(hook);
-    case 'focus-editor': return hook.editor?.action(ctx => ctx.get(editorViewCtx).focus());
+    case 'focus-editor':
+      if (payload?.to === 'smart_input' && !hook.el.closest('#smart_input_container')) return; // floating composer only
+      if (payload?.reply_to) return focusOnceReplying(hook, payload.reply_to); // it can arrive before PersistentLive opens the reply
+      return hook.editor?.action(ctx => ctx.get(editorViewCtx).focus());
     case 'insert_at_cursor':
       if (!hook.editor || typeof payload.text !== 'string' || !payload.text) return;
       return hook.editor.action(ctx => {
@@ -293,6 +344,7 @@ function handleMentionSuggestions(hook, payload) {
   });
 }
 
+// smart_input:reset: clear, then unlock
 function handleReset(hook) {
   const form = getComposerRoot(hook);
   const titleInput = form.querySelector('#smart_input_post_title input');
@@ -303,9 +355,11 @@ function handleReset(hook) {
     hook.editor.action(replaceAll(''));
     hook._flushEditor?.();
   }
+  releaseReset(hook);
 }
 
 export function reconnect(hook) {
+  releaseReset(hook);
   if (!hook.editor) return;
   hook._flushEditor?.(false);
   const hiddenInput = hook.el.querySelector('#editor_hidden_input');
@@ -321,11 +375,15 @@ export async function destroy(hook) {
   hook._currentPicker?.remove();
   hook._currentPicker = null;
   if (hook._guardReplyOverDraft) document.removeEventListener('click', hook._guardReplyOverDraft, true);
+  if (hook._keepFocus) document.removeEventListener('mousedown', hook._keepFocus, true);
+  clearTimeout(hook._focusReplyTimer);
   if (hook._followCaret) {
     window.visualViewport?.removeEventListener('resize', hook._followCaret);
-    hook._followCaretContainer?.removeEventListener('paste', hook._followCaret);
+    hook.el.removeEventListener('paste', hook._followCaret);
   }
   clearTimeout(hook._followCaretTimer);
+  hook._sendLock?.disconnect();
+  hook._sendContainer?.removeAttribute('data-sending'); // nothing else clears it (JS.ignore_attributes)
   const editor = hook.editor;
   hook.editor = null;
   await editor?.destroy();
