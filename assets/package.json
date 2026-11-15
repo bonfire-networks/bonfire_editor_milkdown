@@ -35,6 +35,6 @@
 	"scripts": {
 		"test.editor": "node --test --test-concurrency=1 test/link_syntax.test.mjs test/editor.test.mjs",
 		"build.ext": "npx esbuild ./js/milkdown_editor.js --target=es2020 --bundle --format=esm --minify --drop:console --drop:debugger --outfile=../../../priv/static/assets/milkdown_editor.js",
-		"watch.ext": "NODE_ENV=development npx esbuild ./js/milkdown_editor.js --target=es2020 --bundle --format=esm --sourcemap --outfile=../../../priv/static/assets/milkdown_editor.js --watch"
+		"watch.ext": "NODE_ENV=development npx esbuild ./js/milkdown_editor.js --target=es2020 --bundle --format=esm --sourcemap --outfile=../../../priv/static/assets/milkdown_editor.js --watch=forever"
 	}
 }
