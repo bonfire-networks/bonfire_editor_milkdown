@@ -57,6 +57,16 @@ export const contentCases = [
   { id: 'P21', ...paste('[a](https://example.com)', '', { setDoc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'ab', marks: [{ type: 'inlineCode' }] }] }] }, pos: 2 }), markdown: "`a[a](https://example.com)b`\n", todo: "paste into inline code splits the code" },
   { id: 'P22', ...paste('plain', '', { setDoc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'ab', marks: [{ type: 'strong' }] }] }] }, pos: 2 }), markdown: "**aplainb**\n" },
   { id: 'P23', ...paste('more', '', { setDoc: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'ab', marks: [{ type: 'link', attrs: { href: 'https://example.com', title: null } }] }] }] }, pos: 2 }), markdown: "[amoreb](https://example.com)\n" },
+  // Inline media: an image (`![](url)`, no alt) or a player's bare URL, alone on its line, reaches the server as written, so it still matches its media (see `Bonfire.Files.InlineMedia`)
+  { id: 'I1', ...steps('![](https://example.com/files/redir/local/a_b.png)'), markdown: "![](https://example.com/files/redir/local/a_b.png)\n" },
+  { id: 'I2', ...paste('![](https://example.com/files/redir/local/a_b.png)'), markdown: "![](https://example.com/files/redir/local/a_b.png)\n" },
+  { id: 'I3', ...steps('Intro', { key: 'Enter' }, '![](https://example.com/a.png)', { key: 'Enter' }, 'more'), markdown: "Intro\n\n![](https://example.com/a.png)\n\nmore\n" },
+  { id: 'I4', ...steps('Intro', { key: 'Enter' }, 'https://www.youtube.com/watch?v=q0BvUFpVJMs', { key: 'Enter' }, 'more'), markdown: "Intro\n\nhttps://www.youtube.com/watch?v=q0BvUFpVJMs\n\nmore\n" },
+  { id: 'I5', ...steps('Blog post: https://bonfirenetworks.org/posts/for-the-things-we-can-only-do-together/'), markdown: "Blog post: https://bonfirenetworks.org/posts/for-the-things-we-can-only-do-together/\n" },
+  // typed with alt text: an image, not `!` followed by a link
+  { id: 'I7', ...steps('![a](https://example.com/a.png)'), markdown: "![a](https://example.com/a.png)\n" },
+  // the composer's placeholder for a file not uploaded yet, swapped for its URL at publish
+  { id: 'I6', ...paste('![](upload:phx-F1)'), markdown: "![](upload:phx-F1)\n" },
   // Line breaks
   { id: 'N6', ...steps('a', { key: 'Shift+Enter' }, { key: 'Shift+Enter' }, { key: 'Shift+Enter' }, 'b'), markdown: "a\n\n<br />\n\nb\n" },
   { id: 'N7', ...steps({ key: 'Enter' }, 'a'), markdown: "a\n" },

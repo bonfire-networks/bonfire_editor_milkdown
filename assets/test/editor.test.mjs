@@ -815,3 +815,245 @@ test('Reply on the post already being replied to does not ask', async () => {
   const result = await clickReplyWith(false, 'post-2');
   assert.deepEqual([result.asked, result.reachedLiveView, result.text], [0, 1, 'My post draft']);
 });
+
+// "Insert in text" on an upload preview: the file isn't uploaded yet, so its place is `upload:<ref>` (swapped for its URL at publish), shown meanwhile from the preview LiveView made for it
+const previewSrc = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+
+test('inserting markdown at the cursor places an upload as an image, sent as upload:<ref>', async () => {
+  await openEditor();
+  const result = await page.evaluate(async () => {
+    window.events.insert_at_cursor({ text: '![](upload:7)', markdown: true });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    // not counting the separator ProseMirror adds after an inline node that ends its line
+    return { markdown: editorTest.serialize(), images: editorTest.view().dom.querySelectorAll('img:not(.ProseMirror-separator)').length };
+  });
+  assert.equal(result.markdown, '![](upload:7)\n\n');
+  assert.equal(result.images, 1);
+});
+
+test('an upload placed in the text shows from its preview, not from upload:<ref>', async () => {
+  await openEditor();
+  const shown = await page.evaluate(async src => {
+    document.body.insertAdjacentHTML('beforeend', `<img data-phx-entry-ref="7" src="${src}">`);
+    window.events.insert_at_cursor({ text: '![](upload:7)', markdown: true });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return editorTest.view().dom.querySelector('img')?.getAttribute('src');
+  }, previewSrc);
+  assert.equal(shown, previewSrc);
+});
+
+// an upload preview's "Insert in text" button dispatches this on the editor, without a server round trip
+test('a bonfire:insert_at_cursor DOM event on the editor inserts as the server event does', async () => {
+  await openEditor();
+  const markdown = await page.evaluate(async () => {
+    hook.el.dispatchEvent(new CustomEvent('bonfire:insert_at_cursor', { detail: { text: '![](upload:7)', markdown: true }, bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return editorTest.serialize();
+  });
+  assert.equal(markdown, '![](upload:7)\n\n');
+});
+
+// pasted or dropped files go to the composer's LiveView upload (`uploadTo`, stubbed here: it records the call and gives each file a ref, as LiveView does), and an image, video or audio is placed where the cursor is
+// `refDelay`: LiveView gives a file its ref when it sends the form's change, which can be debounced, so after `uploadTo` returns
+async function withUploadStub(refDelay = null) {
+  await openEditor();
+  await page.evaluate(refDelay => {
+    window.uploadedTo = [];
+    let nextRef = 100;
+    hook.uploadTo = (target, name, files) => {
+      const giveRefs = () => { for (const file of files) file._phxRef = String(nextRef++); };
+      if (refDelay === null) giveRefs();
+      else setTimeout(giveRefs, refDelay);
+      uploadedTo.push({ target: typeof target === 'string' ? target : target?.id, name, names: Array.from(files).map(file => file.name) });
+    };
+  }, refDelay);
+}
+
+// LiveView's preview of the entry (`<img data-phx-entry-ref>`) only comes with the server's reply: meanwhile the image shows from the pasted file itself
+test('a pasted image shows at once, from the file, before LiveView has a preview of it', async () => {
+  await withUploadStub();
+  const src = await page.evaluate(async fileTransfer => {
+    const transfer = eval(fileTransfer)([['photo.png', 'image/png']]);
+    editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return editorTest.view().dom.querySelector('img:not(.ProseMirror-separator)')?.getAttribute('src');
+  }, fileTransfer);
+  assert.match(src || '', /^blob:/);
+});
+
+// a placed file is alone on its line, as the body needs it to show as media (a URL that ends its line), and what's typed next goes on the line after
+test('text typed after a pasted image goes on its own line', async () => {
+  await withUploadStub();
+  await page.evaluate(async fileTransfer => {
+    editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: eval(fileTransfer)([['photo.png', 'image/png']]), bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }, fileTransfer);
+  await page.keyboard.type('test');
+  const markdown = await page.evaluate(() => editorTest.serialize());
+  assert.equal(markdown, '![](upload:100)\n\ntest\n');
+});
+
+test('an image pasted after text on a line goes on the line after it, and what follows on the next', async () => {
+  await withUploadStub();
+  await page.evaluate(() => editorTest.view().focus());
+  await page.keyboard.type('before');
+  await page.evaluate(async fileTransfer => {
+    editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: eval(fileTransfer)([['photo.png', 'image/png']]), bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }, fileTransfer);
+  await page.keyboard.type('after');
+  const markdown = await page.evaluate(() => editorTest.serialize());
+  assert.equal(markdown, 'before\n\n![](upload:100)\n\nafter\n');
+});
+
+// the same image pasted again isn't uploaded again while the first is still an upload of the composer (its entry in the upload list, `[data-role=upload_entry][data-ref]`): it's placed again, with the same ref
+test('the same image pasted twice is uploaded once and placed twice', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async fileTransfer => {
+    document.querySelector('#composer').insertAdjacentHTML('beforeend', '<div data-role="upload_entry" data-ref="100"></div>');
+    const paste = async files => {
+      editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: eval(fileTransfer)(files), bubbles: true, cancelable: true }));
+      await new Promise(resolve => setTimeout(resolve, 100));
+    };
+    await paste([['photo.png', 'image/png']]);
+    await paste([['photo copy.png', 'image/png']]);
+    return { uploads: uploadedTo.length, markdown: editorTest.serialize() };
+  }, fileTransfer);
+  assert.equal(result.uploads, 1);
+  assert.equal(result.markdown, '![](upload:100)\n\n![](upload:100)\n\n');
+});
+
+test('control: an image pasted again after its upload was removed is uploaded again', async () => {
+  await withUploadStub();
+  const uploads = await page.evaluate(async fileTransfer => {
+    for (const name of ['photo.png', 'photo copy.png']) {
+      editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: eval(fileTransfer)([[name, 'image/png']]), bubbles: true, cancelable: true }));
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return uploadedTo.length;
+  }, fileTransfer);
+  assert.equal(uploads, 2);
+});
+
+// once published, the composer resets and its uploads are gone: the same image pasted in the next post is uploaded for it, even if an entry with the old ref is still in the page (eg. the upload list not patched yet)
+test('the same image pasted after the composer reset is uploaded again', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async fileTransfer => {
+    document.querySelector('#composer').insertAdjacentHTML('beforeend', '<div data-role="upload_entry" data-ref="100"></div>');
+    const paste = async name => {
+      editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: eval(fileTransfer)([[name, 'image/png']]), bubbles: true, cancelable: true }));
+      await new Promise(resolve => setTimeout(resolve, 100));
+    };
+    await paste('photo.png');
+    events['smart_input:reset']();
+    await new Promise(resolve => setTimeout(resolve, 50));
+    await paste('photo copy.png');
+    return { uploads: uploadedTo.length, markdown: editorTest.serialize() };
+  }, fileTransfer);
+  assert.equal(result.uploads, 2);
+  assert.equal(result.markdown, '![](upload:101)\n\n');
+});
+
+test('a pasted image is placed once LiveView gives it a ref, even after the paste', async () => {
+  await withUploadStub(100);
+  const result = await page.evaluate(async fileTransfer => {
+    const transfer = eval(fileTransfer)([['photo.png', 'image/png']]);
+    editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return editorTest.serialize();
+  }, fileTransfer);
+  assert.equal(result, '![](upload:100)\n\n');
+});
+
+const fileTransfer = `(files => { const transfer = new DataTransfer(); for (const [name, type] of files) transfer.items.add(new File(['x'], name, { type })); return transfer; })`;
+
+test('a pasted image is uploaded with the composer and placed in the text', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async fileTransfer => {
+    const transfer = eval(fileTransfer)([['photo.png', 'image/png']]);
+    editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return { uploadedTo, markdown: editorTest.serialize() };
+  }, fileTransfer);
+  // the form the editor is in (the test page's is `#composer`)
+  assert.deepEqual(result.uploadedTo, [{ target: 'composer', name: 'files', names: ['photo.png'] }]);
+  assert.equal(result.markdown, '![](upload:100)\n\n');
+});
+
+test('a dropped image is uploaded with the composer and placed in the text', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async fileTransfer => {
+    const transfer = eval(fileTransfer)([['photo.png', 'image/png']]);
+    const rect = editorTest.view().dom.getBoundingClientRect();
+    editorTest.view().dom.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, clientX: rect.left + 10, clientY: rect.top + 10, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return { uploadedTo, markdown: editorTest.serialize() };
+  }, fileTransfer);
+  assert.deepEqual(result.uploadedTo.map(upload => upload.names), [['photo.png']]);
+  assert.equal(result.markdown, '![](upload:100)\n\n');
+});
+
+test('a pasted document is uploaded as an attachment, not placed in the text', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async fileTransfer => {
+    const transfer = eval(fileTransfer)([['notes.pdf', 'application/pdf']]);
+    editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return { uploadedTo, markdown: editorTest.serialize() };
+  }, fileTransfer);
+  assert.deepEqual(result.uploadedTo.map(upload => upload.names), [['notes.pdf']]);
+  assert.equal(result.markdown.trim(), '');
+});
+
+// a composer mode without the editor (a poll's question) takes the same insertion in a plain field, as markdown text
+test('a plain field marked data-insert-at-cursor takes the insertion at its cursor', async () => {
+  await openEditor();
+  const result = await page.evaluate(async () => {
+    document.body.insertAdjacentHTML('beforeend', '<input id="plain" data-insert-at-cursor value="Which one? ">');
+    const field = document.querySelector('#plain');
+    field.setSelectionRange(field.value.length, field.value.length);
+    let inputs = 0;
+    field.addEventListener('input', () => inputs++);
+    field.dispatchEvent(new CustomEvent('bonfire:insert_at_cursor', { detail: { text: '![](upload:7)', markdown: true }, bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 10));
+    return { value: field.value, inputs, editor: editorTest.serialize() };
+  });
+  assert.equal(result.value, 'Which one? ![](upload:7)');
+  assert.equal(result.inputs, 1);
+  assert.equal(result.editor.trim(), '', 'control: the editor took nothing');
+});
+
+// an upload preview's "Insert in text" dispatches on itself: the insertion goes to the plain field last written in (a poll's question or one of its options), else to the editor
+test('Insert in text from a button goes to the plain field last focused', async () => {
+  await openEditor();
+  const result = await page.evaluate(async () => {
+    document.body.insertAdjacentHTML('beforeend', '<input id="question" data-insert-at-cursor><input id="option" data-insert-at-cursor><button id="insert">Insert in text</button>');
+    document.querySelector('#option').focus();
+    document.querySelector('#insert').focus();
+    document.querySelector('#insert').dispatchEvent(new CustomEvent('bonfire:insert_at_cursor', { detail: { text: '![](upload:7)', markdown: true }, bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return { question: document.querySelector('#question').value, option: document.querySelector('#option').value, editor: editorTest.serialize() };
+  });
+  assert.deepEqual(result, { question: '', option: '![](upload:7)', editor: '' });
+});
+
+test('Insert in text from a button goes to the editor when no plain field was written in', async () => {
+  await openEditor();
+  const markdown = await page.evaluate(async () => {
+    document.body.insertAdjacentHTML('beforeend', '<button id="insert">Insert in text</button>');
+    document.querySelector('#insert').dispatchEvent(new CustomEvent('bonfire:insert_at_cursor', { detail: { text: '![](upload:7)', markdown: true }, bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return editorTest.serialize();
+  });
+  assert.equal(markdown, '![](upload:7)\n\n');
+});
+
+test('control: inserting without markdown keeps the text literal', async () => {
+  await openEditor();
+  const markdown = await page.evaluate(async () => {
+    window.events.insert_at_cursor({ text: '![](upload:7)' });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return editorTest.serialize();
+  });
+  assert.equal(markdown, '!\\[]\\(upload:7)\n');
+});

@@ -4,14 +4,16 @@ import {
   editorViewOptionsCtx,
   Editor,
   editorViewCtx,
+  parserCtx,
   remarkStringifyOptionsCtx,
   rootCtx,
 } from '@milkdown/core';
 import { trailing } from '@milkdown/kit/plugin/trailing';
 import { history } from '@milkdown/kit/plugin/history';
 import { indent } from '@milkdown/kit/plugin/indent';
-import { replaceAll, $prose } from '@milkdown/utils';
-import { commonmark, hardbreakSchema, headingAttr, linkSchema } from '@milkdown/preset-commonmark';
+import { replaceAll, insert, $prose } from '@milkdown/utils';
+import { imageView, showFromFile } from './images.js';
+import { commonmark, hardbreakSchema, headingAttr, insertImageInputRule, linkSchema } from '@milkdown/preset-commonmark';
 import { clipboard } from '@milkdown/kit/plugin/clipboard';
 import { Plugin, PluginKey, Selection, TextSelection } from '@milkdown/prose/state';
 import { Decoration, DecorationSet } from '@milkdown/prose/view';
@@ -163,17 +165,30 @@ async function initEditor(hook, hiddenInput, container) {
           autocomplete: 'off',
         },
         handlePaste: (_view, event) => {
-          const data = event.clipboardData;
-          if (!data) return false;
-          if (data.files.length || Array.from(data.items).some(item => item.type.startsWith('image/'))) {
-            event.preventDefault();
-            return true;
-          }
-          return false;
+          const files = Array.from(event.clipboardData?.files || []);
+          if (!files.length) return false;
+          event.preventDefault();
+          uploadAndPlace(hook, files);
+          return true;
+        },
+        // files dropped on the text land where they're dropped, rather than only as attachments
+        handleDrop: (view, event) => {
+          const files = Array.from(event.dataTransfer?.files || []);
+          if (!files.length) return false;
+          event.preventDefault();
+          // LiveView's own drop handling on the composer would add the same files again
+          event.stopPropagation();
+          const at = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          if (at) view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(at.pos))));
+          uploadAndPlace(hook, files);
+          return true;
         },
       }));
     })
     .use(commonmark)
+    // the preset defines a typed `![alt](url)` input rule but doesn't register it; before the link conversion, so `![a](url)` becomes an image rather than `!` and a link
+    .use(insertImageInputRule)
+    .use(imageView)
     .use(indent)
     .use(trailing)
     .use(clipboard)
@@ -304,6 +319,84 @@ function focusOnceReplying(hook, replyId, tries = 50) {
   if (tries > 0) hook._focusReplyTimer = setTimeout(() => focusOnceReplying(hook, replyId, tries - 1), 100);
 }
 
+// a file the text can show where it sits (see `Bonfire.Files.InlineMedia`); any other one is only attached
+const PLACEABLE = /^(image|video|audio)\//;
+
+// Pasted or dropped files go to the composer's LiveView upload, as attached ones do (so its limits and upload at publish apply), and each image, video or audio is placed at the cursor as `![](upload:<ref>)`, `<ref>` being the ref LiveView gives the file (`file._phxRef`, its upload entry's).
+// A file with the same content as one the composer still uploads (in its upload list, which the server renders: `[data-role=upload_entry][data-ref]`) isn't uploaded again: it's placed again with that ref.
+async function uploadAndPlace(hook, files) {
+  if (typeof hook.uploadTo !== 'function') return;
+  // the form the editor is in: the post composer's, or the one a composer mode renders instead (eg. a poll's), which holds the same upload
+  const form = hook.el.closest('form');
+  const uploading = ref => !!document.querySelector(`[data-role=upload_entry][data-ref="${CSS.escape(ref)}"]`);
+
+  const hashes = await Promise.all(files.map(contentHash));
+  const sameAs = new Map(); // a file => the ref of the upload with its content
+  files.forEach((file, i) => {
+    const ref = hashes[i] && refsByHash.get(hashes[i]);
+    if (ref && uploading(ref)) sameAs.set(file, ref);
+  });
+  const fresh = files.filter(file => !sameAs.has(file));
+  if (fresh.length) hook.uploadTo(form || '#smart_input_form', 'files', fresh);
+
+  const refOf = file => sameAs.get(file) ?? file._phxRef;
+
+  const place = () => {
+    files.forEach((file, i) => {
+      if (file._phxRef === undefined) return;
+      if (hashes[i]) refsByHash.set(hashes[i], file._phxRef);
+      showFromFile(file._phxRef, file);
+    });
+    const markdown = files
+      .filter(file => PLACEABLE.test(file.type) && refOf(file) !== undefined)
+      .map(file => `![](upload:${refOf(file)})`)
+      .join('\n\n');
+    if (markdown) handleServerEvent(hook, 'insert_at_cursor', { text: markdown, markdown: true });
+  };
+
+  // LiveView gives a file its ref when it sends the form's change, which can be debounced, so after `uploadTo` returns: wait for the refs, a while at most, then place the files that have one
+  const until = Date.now() + PLACE_WAIT_MS;
+  const placeWhenRefs = () => {
+    if (fresh.every(file => file._phxRef !== undefined) || Date.now() > until) place();
+    else requestAnimationFrame(placeWhenRefs);
+  };
+  placeWhenRefs();
+}
+
+const PLACE_WAIT_MS = 5000;
+
+// A placed file goes on a line of its own, as the body needs it to show as media (a URL that ends its line, see `Bonfire.Common.Text.markdown_parts/3`): text before the cursor stays on the line before, and the cursor goes to the start of the line after, so what's typed next goes there. False where the cursor isn't in a line of text, for `insert` to do it.
+function placeAsBlocks(view, doc) {
+  if (!doc?.content.size) return false;
+  const tr = view.state.tr.deleteSelection();
+  let $pos = tr.selection.$from;
+  if (!$pos.parent.isTextblock || $pos.depth < 1) return false;
+
+  if ($pos.parentOffset > 0) {
+    tr.split($pos.pos);
+    $pos = tr.doc.resolve(tr.mapping.map($pos.pos));
+  }
+
+  const cursor = $pos.pos;
+  tr.insert($pos.before(), doc.content);
+  tr.setSelection(TextSelection.create(tr.doc, tr.mapping.slice(tr.steps.length - 1).map(cursor)));
+  view.dispatch(tr.scrollIntoView());
+  return true;
+}
+
+// the ref of each upload by its content, to find a file pasted again; emptied when the composer resets (its uploads are gone once published)
+const refsByHash = new Map();
+
+// null where the page can't hash (`crypto.subtle` is only there over https or on localhost): such files are always uploaded
+async function contentHash(file) {
+  try {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+  } catch {
+    return null;
+  }
+}
+
 export function handleServerEvent(hook, name, payload) {
   switch (name) {
     case 'mention_suggestions': return handleMentionSuggestions(hook, payload);
@@ -316,7 +409,9 @@ export function handleServerEvent(hook, name, payload) {
       if (!hook.editor || typeof payload.text !== 'string' || !payload.text) return;
       return hook.editor.action(ctx => {
         const view = ctx.get(editorViewCtx);
-        view.dispatch(view.state.tr.insertText(payload.text));
+        // `markdown: true` parses the text into nodes (eg. an uploaded file placed as `![](upload:<ref>)`), on lines of their own; else it goes in as typed
+        if (payload.markdown) placeAsBlocks(view, ctx.get(parserCtx)(payload.text)) || insert(payload.text)(ctx);
+        else view.dispatch(view.state.tr.insertText(payload.text));
         view.focus();
       });
   }
@@ -351,6 +446,7 @@ function handleReset(hook) {
   const cwInput = form.querySelector('#smart_input_summary textarea[name="post[post_content][summary]"]');
   if (titleInput) titleInput.value = '';
   if (cwInput) cwInput.value = '';
+  refsByHash.clear();
   if (hook.editor) {
     hook.editor.action(replaceAll(''));
     hook._flushEditor?.();
