@@ -881,6 +881,38 @@ test('a pasted image shows at once, from the file, before LiveView has a preview
   assert.match(src || '', /^blob:/);
 });
 
+// a video or audio file is placed as an image is (`![](upload:<ref>)`, which shows as its player once published), and shows in the editor as a video or audio, not an empty image
+test('a dropped video shows as a video in the editor, placed as upload:<ref>', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async fileTransfer => {
+    const transfer = eval(fileTransfer)([['clip.mp4', 'video/mp4']]);
+    const rect = editorTest.view().dom.getBoundingClientRect();
+    editorTest.view().dom.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, clientX: rect.left + 10, clientY: rect.top + 10, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const dom = editorTest.view().dom;
+    return { video: dom.querySelector('video')?.getAttribute('src'), img: dom.querySelectorAll('img:not(.ProseMirror-separator)').length, markdown: editorTest.serialize() };
+  }, fileTransfer);
+  assert.match(result.video || '', /^blob:/);
+  assert.equal(result.img, 0);
+  assert.equal(result.markdown, '![](upload:100)\n\n');
+});
+
+test('a dropped audio file shows as an audio player in the editor, placed as upload:<ref>', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async fileTransfer => {
+    const transfer = eval(fileTransfer)([['song.mp3', 'audio/mpeg']]);
+    const rect = editorTest.view().dom.getBoundingClientRect();
+    editorTest.view().dom.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, clientX: rect.left + 10, clientY: rect.top + 10, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    const dom = editorTest.view().dom;
+    return { audio: dom.querySelector('audio')?.getAttribute('src'), controls: dom.querySelector('audio')?.controls, img: dom.querySelectorAll('img:not(.ProseMirror-separator)').length, markdown: editorTest.serialize() };
+  }, fileTransfer);
+  assert.match(result.audio || '', /^blob:/);
+  assert.equal(result.controls, true);
+  assert.equal(result.img, 0);
+  assert.equal(result.markdown, '![](upload:100)\n\n');
+});
+
 // a placed file is alone on its line, as the body needs it to show as media (a URL that ends its line), and what's typed next goes on the line after
 test('text typed after a pasted image goes on its own line', async () => {
   await withUploadStub();
