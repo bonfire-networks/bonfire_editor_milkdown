@@ -913,6 +913,159 @@ test('a dropped audio file shows as an audio player in the editor, placed as upl
   assert.equal(result.markdown, '![](upload:100)\n\n');
 });
 
+// a stored file inserted by its URL (the composer's media picker) shows as its player too, told by the URL's extension since there's no file to ask; an image URL stays an image
+test('a video or audio file placed by its URL shows as its player, an image URL as an image', async () => {
+  await openEditor();
+  const shown = await page.evaluate(async () => {
+    const tags = {};
+    for (const ext of ['mp3', 'mp4', 'png']) {
+      editorTest.view().dom.textContent = '';
+      window.events.insert_at_cursor({ text: `![](https://x.example.com/files/redir/local/a/b.${ext})`, markdown: true });
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const node = editorTest.view().dom.querySelector(`[src$=".${ext}"]`);
+      tags[ext] = { tag: node?.tagName.toLowerCase(), controls: node?.controls };
+    }
+    return tags;
+  });
+  assert.deepEqual(shown.mp3, { tag: 'audio', controls: true });
+  assert.deepEqual(shown.mp4, { tag: 'video', controls: true });
+  assert.equal(shown.png.tag, 'img');
+});
+
+// an upload's preview dragged into the text is placed as "Insert in text" places it (`![](upload:<ref>)`), never as the preview's `blob:` URL, which only exists in this tab
+test('an upload preview dragged into the text is placed as upload:<ref>', async () => {
+  await withUploadStub();
+  const result = await page.evaluate(async () => {
+    document.body.insertAdjacentHTML('beforeend', '<div data-role="upload_entry" data-ref="42"><img id="preview" data-phx-entry-ref="42" src="blob:http://localhost/x" draggable="true"></div>');
+    const preview = document.querySelector('#preview');
+    const transfer = new DataTransfer();
+    preview.dispatchEvent(new DragEvent('dragstart', { dataTransfer: transfer, bubbles: true }));
+    // what the browser adds itself when an image is dragged
+    transfer.setData('text/html', preview.outerHTML);
+    transfer.setData('text/uri-list', preview.src);
+    const rect = editorTest.view().dom.getBoundingClientRect();
+    editorTest.view().dom.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, clientX: rect.left + 10, clientY: rect.top + 10, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return { markdown: editorTest.serialize(), uploads: uploadedTo.length };
+  });
+  assert.equal(result.markdown, '![](upload:42)\n\n');
+  assert.equal(result.uploads, 0, 'nothing is uploaded again');
+});
+
+// a tile of the composer's media picker dragged into the text is placed where it's dropped, by the tile's own Insert button (whose command also adds the file to the uploads), so nothing is placed twice or differently
+test('a media picker tile dragged into the text runs its Insert at the drop point', async () => {
+  await openEditor();
+  const result = await page.evaluate(async () => {
+    const ran = [];
+    // LiveView runs the button's command: here it records the button and dispatches what the real one dispatches
+    window.liveSocket = {
+      execJS: (el) => {
+        ran.push(el.dataset.role);
+        el.dispatchEvent(new CustomEvent('bonfire:insert_at_cursor', { detail: { text: '![](https://example.com/files/redir/local/a.png)', markdown: true }, bubbles: true }));
+      },
+    };
+    document.body.insertAdjacentHTML('beforeend', '<div data-id="media_tile" data-media-id="M1" draggable="true"><img id="tile_img" src="https://example.com/a.png"><button data-role="pick_insert" phx-click="[]">Insert</button></div>');
+    const transfer = new DataTransfer();
+    document.querySelector('#tile_img').dispatchEvent(new DragEvent('dragstart', { dataTransfer: transfer, bubbles: true }));
+    // what the browser adds itself when an image is dragged
+    transfer.setData('text/uri-list', 'https://example.com/a.png');
+    const rect = editorTest.view().dom.getBoundingClientRect();
+    editorTest.view().dom.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, clientX: rect.left + 10, clientY: rect.top + 10, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return { ran, markdown: editorTest.serialize() };
+  });
+  assert.deepEqual(result.ran, ['pick_insert']);
+  assert.equal(result.markdown, '![](https://example.com/files/redir/local/a.png)\n\n');
+});
+
+test('an upload preview dragged into a plain field is placed there as upload:<ref>', async () => {
+  await openEditor();
+  const value = await page.evaluate(async () => {
+    document.body.insertAdjacentHTML('beforeend', '<input id="question" data-insert-at-cursor value="Which? "><div data-role="upload_entry" data-ref="42"><img id="preview" data-phx-entry-ref="42" src="blob:http://localhost/x" draggable="true"></div>');
+    const preview = document.querySelector('#preview');
+    const field = document.querySelector('#question');
+    field.setSelectionRange(field.value.length, field.value.length);
+    const transfer = new DataTransfer();
+    preview.dispatchEvent(new DragEvent('dragstart', { dataTransfer: transfer, bubbles: true }));
+    transfer.setData('text/uri-list', preview.src);
+    field.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return field.value;
+  });
+  assert.equal(value, 'Which? ![](upload:42)');
+});
+
+test('a media picker tile dragged into a plain field runs its Insert there', async () => {
+  await openEditor();
+  const result = await page.evaluate(async () => {
+    const ran = [];
+    window.liveSocket = {
+      execJS: (el) => {
+        ran.push(el.dataset.role);
+        el.dispatchEvent(new CustomEvent('bonfire:insert_at_cursor', { detail: { text: '![](https://example.com/files/redir/local/a.png)', markdown: true }, bubbles: true }));
+      },
+    };
+    document.body.insertAdjacentHTML('beforeend', '<input id="question" data-insert-at-cursor value="Which? "><div data-id="media_tile" data-media-id="M1" draggable="true"><img id="tile_img" src="https://example.com/a.png"><button data-role="pick_insert" phx-click="[]">Insert</button></div>');
+    const field = document.querySelector('#question');
+    field.setSelectionRange(field.value.length, field.value.length);
+    const transfer = new DataTransfer();
+    document.querySelector('#tile_img').dispatchEvent(new DragEvent('dragstart', { dataTransfer: transfer, bubbles: true }));
+    transfer.setData('text/uri-list', 'https://example.com/a.png');
+    field.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, bubbles: true, cancelable: true }));
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return { ran, value: field.value, markdown: editorTest.serialize() };
+  });
+  assert.deepEqual(result.ran, ['pick_insert']);
+  assert.equal(result.value, 'Which? ![](https://example.com/files/redir/local/a.png)');
+  assert.equal(result.markdown, '', 'not also placed in the editor');
+});
+
+// any other image only this tab has (a `blob:` or `data:` URL, eg. dragged or copied from elsewhere on the page) is fetched here and uploaded as a pasted file is, never put in the text as its URL
+async function dropOrPasteUrl(kind, url) {
+  return page.evaluate(async ([kind, url]) => {
+    const src = url === 'BLOB' ? URL.createObjectURL(new Blob(['x'], { type: 'image/png' })) : url;
+    const transfer = new DataTransfer();
+    transfer.setData('text/html', `<img src="${src}">`);
+    if (kind === 'drop') {
+      transfer.setData('text/uri-list', src);
+      const rect = editorTest.view().dom.getBoundingClientRect();
+      editorTest.view().dom.dispatchEvent(new DragEvent('drop', { dataTransfer: transfer, clientX: rect.left + 10, clientY: rect.top + 10, bubbles: true, cancelable: true }));
+    } else {
+      editorTest.view().dom.dispatchEvent(new ClipboardEvent('paste', { clipboardData: transfer, bubbles: true, cancelable: true }));
+    }
+    await new Promise(resolve => setTimeout(resolve, 200));
+    return { uploads: uploadedTo.map(upload => upload.names), markdown: editorTest.serialize() };
+  }, [kind, url]);
+}
+
+test('an image dropped as a blob: URL is uploaded and placed as upload:<ref>', async () => {
+  await withUploadStub();
+  const result = await dropOrPasteUrl('drop', 'BLOB');
+  assert.equal(result.uploads.length, 1);
+  assert.equal(result.markdown, '![](upload:100)\n\n');
+});
+
+test('an image pasted as a blob: URL is uploaded and placed as upload:<ref>', async () => {
+  await withUploadStub();
+  const result = await dropOrPasteUrl('paste', 'BLOB');
+  assert.equal(result.uploads.length, 1);
+  assert.equal(result.markdown, '![](upload:100)\n\n');
+});
+
+test('an image dropped as a data: URL is uploaded and placed as upload:<ref>', async () => {
+  await withUploadStub();
+  const result = await dropOrPasteUrl('drop', 'data:image/png;base64,eA==');
+  assert.equal(result.uploads.length, 1);
+  assert.equal(result.markdown, '![](upload:100)\n\n');
+});
+
+test('control: an image dropped as an https URL is not uploaded', async () => {
+  await withUploadStub();
+  const result = await dropOrPasteUrl('drop', 'https://example.com/a.png');
+  assert.equal(result.uploads.length, 0);
+  assert.match(result.markdown, /https:\/\/example\.com\/a\.png/);
+});
+
 // a placed file is alone on its line, as the body needs it to show as media (a URL that ends its line), and what's typed next goes on the line after
 test('text typed after a pasted image goes on its own line', async () => {
   await withUploadStub();

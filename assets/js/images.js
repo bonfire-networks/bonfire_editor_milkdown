@@ -20,7 +20,16 @@ export function previewSrc(src) {
   return files.get(ref)?.url || document.querySelector(`img[data-phx-entry-ref="${CSS.escape(ref)}"]`)?.getAttribute('src') || '';
 }
 
-const previewTag = src => files.get(uploadRef(src))?.tag || 'img';
+// a stored file placed by its URL (eg. from the composer's media picker) has no file to ask, so its extension tells
+const audioExts = ['mp3', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'wav', 'flac'];
+const videoExts = ['mp4', 'm4v', 'webm', 'mov', 'ogv'];
+
+const tagFromUrl = src => {
+  const ext = (src || '').split(/[?#]/)[0].split('.').pop().toLowerCase();
+  return audioExts.includes(ext) ? 'audio' : videoExts.includes(ext) ? 'video' : 'img';
+};
+
+const previewTag = src => files.get(uploadRef(src))?.tag || (uploadRef(src) === null ? tagFromUrl(src) : 'img');
 
 export const imageView = $view(imageSchema.node, () => node => {
   const tag = previewTag(node.attrs.src);

@@ -164,23 +164,37 @@ async function initEditor(hook, hiddenInput, container) {
           spellcheck: 'false',
           autocomplete: 'off',
         },
+        // pasted files, or an image only this tab has (`blob:`/`data:`), are uploaded and placed
         handlePaste: (_view, event) => {
           const files = Array.from(event.clipboardData?.files || []);
-          if (!files.length) return false;
+          const localUrl = !files.length && localImageUrl(event.clipboardData);
+          if (!files.length && !localUrl) return false;
           event.preventDefault();
-          uploadAndPlace(hook, files);
+          if (files.length) uploadAndPlace(hook, files);
+          else uploadAndPlaceUrl(hook, localUrl);
           return true;
         },
         // files dropped on the text land where they're dropped, rather than only as attachments
+        // an upload's preview dragged in is placed by its ref, as "Insert in text" does, never as its `blob:` URL (see `milkdown.hooks.js`); any other image only this tab has is uploaded
+        // a media picker tile dragged in is placed by its own Insert button, at the drop point (see `milkdown.hooks.js`)
         handleDrop: (view, event) => {
-          const files = Array.from(event.dataTransfer?.files || []);
-          if (!files.length) return false;
+          const mediaId = event.dataTransfer?.getData(PICKED_MEDIA_TYPE);
+          const ref = !mediaId && event.dataTransfer?.getData(UPLOAD_REF_TYPE);
+          const files = mediaId ? [] : Array.from(event.dataTransfer?.files || []);
+          const localUrl = !mediaId && !ref && !files.length && localImageUrl(event.dataTransfer);
+          if (!mediaId && !ref && !files.length && !localUrl) return false;
           event.preventDefault();
           // LiveView's own drop handling on the composer would add the same files again
           event.stopPropagation();
           const at = view.posAtCoords({ left: event.clientX, top: event.clientY });
           if (at) view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(at.pos))));
-          uploadAndPlace(hook, files);
+          if (mediaId) {
+            // focused, the editor is where the Insert goes (rather than a plain field written in before)
+            view.focus();
+            runPickedInsert(mediaId);
+          } else if (ref) handleServerEvent(hook, 'insert_at_cursor', { text: `![](upload:${ref})`, markdown: true });
+          else if (files.length) uploadAndPlace(hook, files);
+          else uploadAndPlaceUrl(hook, localUrl);
           return true;
         },
       }));
@@ -322,6 +336,17 @@ function focusOnceReplying(hook, replyId, tries = 50) {
 // a file the text can show where it sits (see `Bonfire.Files.InlineMedia`); any other one is only attached
 const PLACEABLE = /^(image|video|audio)\//;
 
+// the drag data type carrying an upload preview's ref (set on dragstart in `milkdown.hooks.js`, a separate bundle)
+const UPLOAD_REF_TYPE = 'application/x-bonfire-upload-ref';
+// the drag data type carrying a media picker tile's media id (set on dragstart in `milkdown.hooks.js`)
+const PICKED_MEDIA_TYPE = 'application/x-bonfire-picked-media';
+
+// runs a media picker tile's Insert button, which places the file at the cursor and adds it to the uploads (the same in `milkdown.hooks.js`)
+function runPickedInsert(mediaId) {
+  const button = document.querySelector(`[data-id=media_tile][data-media-id="${CSS.escape(mediaId)}"] [data-role=pick_insert]`);
+  if (button) window.liveSocket?.execJS(button, button.getAttribute('phx-click'));
+}
+
 // Pasted or dropped files go to the composer's LiveView upload, as attached ones do (so its limits and upload at publish apply), and each image, video or audio is placed at the cursor as `![](upload:<ref>)`, `<ref>` being the ref LiveView gives the file (`file._phxRef`, its upload entry's).
 // A file with the same content as one the composer still uploads (in its upload list, which the server renders: `[data-role=upload_entry][data-ref]`) isn't uploaded again: it's placed again with that ref.
 async function uploadAndPlace(hook, files) {
@@ -364,6 +389,25 @@ async function uploadAndPlace(hook, files) {
 }
 
 const PLACE_WAIT_MS = 5000;
+
+// A `blob:` or `data:` image URL in what's dropped or pasted (eg. an image from elsewhere on the page), when no file comes with it: it only exists in this tab, so it's never put in the text as it is. An `https` one isn't taken (it can be attached by reference, see the plan's step on gallery reuse).
+function localImageUrl(transfer) {
+  const uri = (transfer?.getData('text/uri-list') || '').split(/\r?\n/).find(line => line && !line.startsWith('#'));
+  const src = (transfer?.getData('text/html') || '').match(/<img\b[^>]*\bsrc=["']([^"']+)["']/i)?.[1];
+  return [uri, src].find(url => /^(blob|data):/i.test(url || '')) || null;
+}
+
+// such an image is fetched here, as a file, and uploaded and placed as a pasted one is; nothing happens if it can't be read (eg. a `blob:` from another tab) or isn't an image, video or audio
+async function uploadAndPlaceUrl(hook, url) {
+  try {
+    const blob = await (await fetch(url)).blob();
+    if (!PLACEABLE.test(blob.type)) return;
+    const ext = blob.type.split('/')[1]?.split(/[+;]/)[0] || 'bin';
+    await uploadAndPlace(hook, [new File([blob], `pasted.${ext}`, { type: blob.type })]);
+  } catch (error) {
+    console.warn('[milkdown] could not read a dropped or pasted image', url.slice(0, 60), error);
+  }
+}
 
 // A placed file goes on a line of its own, as the body needs it to show as media (a URL that ends its line, see `Bonfire.Common.Text.markdown_parts/3`): text before the cursor stays on the line before, and the cursor goes to the start of the line after, so what's typed next goes there. False where the cursor isn't in a line of text, for `insert` to do it.
 function placeAsBlocks(view, doc) {
